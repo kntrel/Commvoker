@@ -5,54 +5,39 @@ import java.lang.reflect.Method;
 public class BadCommandMethodException extends Exception {
 
     private final Method method_;
-    private final String command_;
-    private final int pointer_;
-    private String msg_ = null;
 
-    public BadCommandMethodException(Method method, String command, int pointer) {
-        this.method_ = method;
-        this.command_ = command;
-        this.pointer_ = pointer;
+    public BadCommandMethodException(Method method) {
+        this(method, null, null);
     }
-
-    public BadCommandMethodException(Method method, String command, int pointer, String msg) {
-        super(msg);
+    public BadCommandMethodException(Method method, Exception cause) {
+        this(method, null, cause);
+    }
+    public BadCommandMethodException(Method method, String msg) {
+        this(method, msg, null);
+    }
+    public BadCommandMethodException(Method method, String msg, Exception cause) {
+        super(msg, cause);
         this.method_ = method;
-        this.command_ = command;
-        this.pointer_ = pointer;
     }
 
 
     public Method getMethod() {
         return method_;
     }
-    public String getCommand() {
-        return command_;
-    }
-    public int getPointer() {
-        return pointer_;
-    }
-
     @Override public String getMessage() {
-        if (this.msg_ != null) {
-            return this.msg_;
+        String msg = this.getMessageInner();
+        if (msg == null || msg.isEmpty()) {
+            msg = "Bad command method";
         }
+        Method method = this.getMethod();
+        return msg + "\n Method: " + method.getDeclaringClass().getName() + "#" + this.getMethod();
+    }
 
-        StringBuilder msg = new StringBuilder(super.getMessage());
-        if (!msg.isEmpty()) {
-            msg.append('\n');
-        }
-        msg.append("> ").append(this.getCommand()).append("\n> ");
-        int i = this.getPointer();
-        while (i-- > 0) {
-            msg.append(' ');
-        }
-
-        Method m = this.getMethod();
-        msg.append("^")
-           .append("\n> at").append(m.getDeclaringClass().getName()).append('#').append(m.getName()).append('\n');
-
-        this.msg_ = msg.toString();
-        return this.msg_;
+    private String getMessageInner() {
+        String msg = super.getMessage();
+        if (msg != null) { return msg; }
+        Throwable cause = this.getCause();
+        if (cause != null) { return cause.getMessage(); }
+        return null;
     }
 }
