@@ -29,10 +29,16 @@ class CommandMethodInvoker<S> implements Command<S> {
         for (int i = 0; i < args.length; i++) {
             args[i] = this.argumentParsers_[i].parse(ctx);
         }
+
+        Object returned;
         try {
-            this.method_.invoke(this.instance_, args);
+            returned = this.method_.invoke(this.instance_, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
+        }
+
+        if (Number.class.isAssignableFrom(this.method_.getReturnType())) {
+            return (int) returned;
         }
 
         return 0;

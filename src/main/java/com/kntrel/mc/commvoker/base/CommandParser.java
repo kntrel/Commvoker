@@ -8,16 +8,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Arrays;
-import java.util.regex.Pattern;
+import java.util.*;
 import java.util.stream.Collectors;
 
-class CommandParser {
+class CommandParser<S> {
 
     //ASSETS
-    private static final Pattern VALID_REGEX = Pattern.compile("[A-Za-z0-9._+-]+");
     enum TokenType { LITERAL, ARGUMENT, UNNAMED_ARGUMENT, WILDCARD }
-    record Token(int position, String label, TokenType type) {
+    record Token(String label, TokenType type) {
         @Override public String toString() {
             return switch (this.type()) {
                 case LITERAL -> this.label();
@@ -26,16 +24,17 @@ class CommandParser {
                 case WILDCARD -> "*";
             };
         }
-
     }
+    private record ArgumentTypeInfo(ArgumentType<?> argumentType, String paramName, Class<?> paramType, int arrayIndex) {}
+    private static final Token IMPLICIT_WILDCARD = new Token(null, TokenType.WILDCARD);
 
 
     //FIElDS
-    private final ArgumentTypeResolver argumentTypeResolver_;
+    private final ArgumentTypeResolver<S> argumentTypeResolver_;
 
 
     //CONSTRUCTORS
-    CommandParser(ArgumentTypeResolver argumentTypeResolver) {
+    CommandParser(ArgumentTypeResolver<S> argumentTypeResolver) {
         this.argumentTypeResolver_ = argumentTypeResolver;
     }
 
@@ -61,32 +60,33 @@ class CommandParser {
                 int err = valid(label);
                 if (err >= 0) {
                     if (type.equals(TokenType.ARGUMENT)) { err++; }
-                    throw new BadCommandTokenException(StringUtils.normalizeSpace(raw), len + err);
+                    throw new BadCommandTokenException(raw, len + err);
                 }
             }
 
             if (type.equals(TokenType.WILDCARD)) {
                 if (lastWildcardPos > 0) {
-                    int prevPos = tokens[lastWildcardPos].position();
-                    tokens[lastWildcardPos] = new Token(prevPos, null, TokenType.UNNAMED_ARGUMENT);
+                    tokens[lastWildcardPos] = new Token(null, TokenType.UNNAMED_ARGUMENT);
                 }
                 lastWildcardPos = i;
             }
 
-            tokens[i] = new Token(len, label, type);
+            tokens[i] = new Token(label, type);
             len += w.length() + 1;
         }
 
         return tokens;
     }
-    public <T> LiteralArgumentBuilder<T> brigadierCommand(String command, Method method) throws BadCommandMethodException {
+    public LiteralArgumentBuilder<S> brigadierCommand(String command, Method method, Object instance) throws BadCommandMethodException {
         try {
-            return this.brigadierCommand(this.tokenize(command), method);
+            return this.brigadierCommand(this.tokenize(command), method, instance);
         } catch (BadCommandTokenException e) {
             throw new BadCommandMethodException(method, e);
         }
     }
-    public <T> LiteralArgumentBuilder<T> brigadierCommand(Token[] tokens, Method  method) throws BadCommandMethodException {
+
+    @SuppressWarnings("unchecked")
+    public LiteralArgumentBuilder<S> brigadierCommand(Token[] tokens, Method method, Object instance) throws BadCommandMethodException {
         // Guard assertions
         if (tokens.length == 0) {
             throw new IllegalArgumentException("empty token array");
@@ -96,72 +96,85 @@ class CommandParser {
         }
 
         // Locating the wildcard and figuring out how many leading and trailing arguments there are
-        int wildcardIndex = -1, leadingCount = 0, trailingCount = 0, len = tokens.length;
-        for (int i = len - 1; i > 0; i--) {
+        int wildcardIndex = -1, leadingCount = 0, trailingCount = 0;
+        for (int i = tokens.length - 1; i > 0; i--) {
             Token t = tokens[i];
             if (t.type().equals(TokenType.LITERAL)) { continue; }
-            if (wildcardIndex < 0) {
-                if (t.type().equals(TokenType.WILDCARD)) {
-                    wildcardIndex = i;
-                    continue;
-                }
-                trailingCount++;
+            if (t.type().equals(TokenType.WILDCARD)) {
+                wildcardIndex = i;
+                trailingCount = leadingCount;
+                leadingCount = 0;
+                continue;
+            }
+            leadingCount++;
+        }
+        if (wildcardIndex < 0) {
+            wildcardIndex = tokens.length;
+            tokens = Arrays.copyOf(tokens, wildcardIndex + 1);
+            tokens[wildcardIndex] = IMPLICIT_WILDCARD;
+        }
+
+        // Resolving method argument types and collecting parsed ArgumentTypes
+        Parameter[] params = method.getParameters();
+        ArgumentParser<S, ?>[] argumentParsers = new ArgumentParser[params.length];
+        Queue<ArgumentTypeInfo> parsed = new LinkedList<>();
+        for (int i = 0; i < params.length; i++) {
+            Parameter param = params[i];
+            ArgumentTypeResolver.Result<S, ?> resolved = this.argumentTypeResolver_.resolve(param.getType(), param, method).orElseThrow(
+                () -> new BadCommandMethodException(method, "Cannot resolve ArgumentType for parameter " + param.getName())
+            );
+            if (resolved.isParsed()) {
+                parsed.add(new ArgumentTypeInfo(resolved.parsed(), param.getName(), param.getType(), i));
             } else {
-                leadingCount++;
+                argumentParsers[i] = ArgumentParser.of(resolved.virtual());
             }
         }
 
-        // If not explicit wildcard, assume one at the end.
-        if (wildcardIndex < 0) {
-            wildcardIndex = len;
-            len++;
-            leadingCount = trailingCount;
-            trailingCount = 0;
+        // Guard against mot enough parsed ArgumentTypes to cover for argument tokens
+        int minArgs = leadingCount + trailingCount;
+        if (minArgs > parsed.size()) {
+            throw new BadCommandMethodException(method, "Command expects a minimum of " + minArgs + " arguments, but methods exposes " + parsed.size());
         }
+
 
         // Guard assertion. Ensuring the method has enough parameters to fulfill the token array
-        Parameter[] params = method.getParameters();
-        int argCount = leadingCount + trailingCount;
-        if (argCount > params.length) {
-            throw new BadCommandMethodException(method, "Too many arguments. Expected a minimum of " + argCount + ", but method declares " + params.length);
-        }
-        int middleCount = params.length - argCount;
-
-        LiteralArgumentBuilder<T> root = LiteralArgumentBuilder.literal(tokens[0].label());
-        ArgumentBuilder<T, ?> cursor = root;
-        int paramIndex = 0;
-
-        for (int i = 1; i < len; i++) {
-            if (i == wildcardIndex) {
-                while (middleCount-- > 0) {
-                    RequiredArgumentBuilder<T, ?> next = buildArg(params[paramIndex++], null, method);
-                    cursor.then(next);
-                    cursor = next;
-                }
-                continue;
-            }
-
+        Stack<ArgumentBuilder<S, ?>> stack = new Stack<>();
+        stack.add(LiteralArgumentBuilder.literal(tokens[0].label()));
+        int i = 1;
+        while (i < tokens.length) {
             Token t = tokens[i];
-            if (t.type() == TokenType.LITERAL) {
-                cursor = cursor.then(LiteralArgumentBuilder.literal(t.label()));
+
+            if (t.type().equals(TokenType.LITERAL)) {
+                stack.add(LiteralArgumentBuilder.literal(t.label()));
+                i++;
                 continue;
             }
 
-            /* ARGUMENT or UNNAMED_ARGUMENT */
-            Parameter p = params[paramIndex++];
-            cursor = cursor.then(buildArg(p, t.label(), method));
+            if (i != wildcardIndex) {
+                i++;
+            } else if (trailingCount >= parsed.size()) {
+                i++;
+                continue;
+            }
+
+            ArgumentTypeInfo argType = parsed.poll();
+            if (argType == null) { break; }
+
+            String label = t.label();
+            if (label == null || label.isEmpty()) { label = argType.paramName(); }
+            stack.add(RequiredArgumentBuilder.argument(label, argType.argumentType()));
+            argumentParsers[argType.arrayIndex()] = ArgumentParser.of(label, argType.paramType());
         }
 
-        return root;
-    }
+        ArgumentBuilder<S, ?> curr = stack.pop();
+        curr.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
+        while (!stack.isEmpty()) {
+            ArgumentBuilder<S, ?> prev = curr;
+            curr = stack.pop();
+            curr.then(prev);
+        }
 
-    //HELPERS
-    private <T> RequiredArgumentBuilder<T, ?> buildArg(Parameter p, @Nullable String explicitLabel, Method owner) throws BadCommandMethodException {
-        ArgumentType<?> at = argumentTypeResolver_.resolve(p.getType(), p).orElseThrow(
-            () -> new BadCommandMethodException(owner, "Cannot resolve ArgumentType for parameter " + p.getName())
-        );
-        String label = (explicitLabel == null || explicitLabel.isEmpty()) ? p.getName() : explicitLabel;
-        return RequiredArgumentBuilder.argument(label, at);
+        return (LiteralArgumentBuilder<S>) curr;
     }
 
     private static TokenType categorize(String word) {

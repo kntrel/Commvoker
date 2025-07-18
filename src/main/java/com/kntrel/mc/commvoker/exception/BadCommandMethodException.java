@@ -30,7 +30,7 @@ public class BadCommandMethodException extends Exception {
             msg = "Bad command method";
         }
         Method method = this.getMethod();
-        return msg + "\n Method: " + method.getDeclaringClass().getName() + "#" + this.getMethod();
+        return msg + "\n Method: " + method.getDeclaringClass().getName() + "#" + this.getMethod().getName();
     }
 
     private String getMessageInner() {

@@ -1,18 +1,19 @@
 package com.kntrel.mc.commvoker.base;
 
 
+import com.kntrel.mc.commvoker.annotation.Word;
+import com.kntrel.mc.commvoker.argument.ArgumentTypeRegistration;
 import com.kntrel.mc.commvoker.argument.ArgumentTypeRegistry;
+import com.kntrel.mc.commvoker.argument.ParameterPredicate;
 import com.kntrel.mc.commvoker.argument.VirtualArgumentType;
-import com.mojang.brigadier.arguments.ArgumentType;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Parameter;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiPredicate;
+import com.mojang.brigadier.arguments.*;
 
-public final class ArgumentTypeResolver<S> implements ArgumentTypeRegistry<S> {
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.*;
+import java.util.stream.Stream;
+
+class ArgumentTypeResolver<S> implements ArgumentTypeRegistry<S> {
 
     public record Result<S, T>(VirtualArgumentType<S, T> virtual, ArgumentType<T> parsed) {
         public Result {
@@ -30,15 +31,31 @@ public final class ArgumentTypeResolver<S> implements ArgumentTypeRegistry<S> {
         VirtualArgumentType<S, T> defaultVirtual;
 
         // Predicate‑conditioned types
-        final Map<BiPredicate<Class<T>, Parameter>, ArgumentType<T>> parsedChecks   = new LinkedHashMap<>();
-        final Map<BiPredicate<Class<T>, Parameter>, VirtualArgumentType<S, T>> virtualChecks  = new LinkedHashMap<>();
+        final Map<ParameterPredicate<T>, ArgumentType<T>> parsedChecks   = new LinkedHashMap<>();
+        final Map<ParameterPredicate<T>, VirtualArgumentType<S, T>> virtualChecks  = new LinkedHashMap<>();
     }
 
     private final Map<Class<?>, Entry<S, ?>> entries = new HashMap<>();
 
 
+    public static <S> ArgumentTypeResolver<S> newDefault() {
+        ArgumentTypeResolver<S> resolver = new ArgumentTypeResolver<>();
+        Stream.<ArgumentTypeRegistration<S, ?>>of(
+                ArgumentTypeRegistration.of(Integer.class, IntegerArgumentType.integer()),
+                ArgumentTypeRegistration.of(Long.class, LongArgumentType.longArg()),
+                ArgumentTypeRegistration.of(Double.class, DoubleArgumentType.doubleArg()),
+                ArgumentTypeRegistration.of(Boolean.class, BoolArgumentType.bool()),
+                ArgumentTypeRegistration.of(String.class, StringArgumentType.string()),
+                ArgumentTypeRegistration.of(Word.class, String.class, StringArgumentType.word()),
+                ArgumentTypeRegistration.of(String.class, (c, p, m) -> m.getParameters()[m.getParameterCount() - 1].equals(p), StringArgumentType.greedyString())
+        ).forEach(resolver::register);
+
+        return resolver;
+    }
+
+
     @SuppressWarnings("unchecked")
-    public <T> Optional<Result<S, T>> resolve(Class<T> type, Parameter parameter) {
+    public <T> Optional<Result<S, T>> resolve(Class<T> type, Parameter parameter, Method method) {
 
         if (!type.equals(parameter.getType())) {
             throw new IllegalArgumentException("Provided type '%s' doesn't match the parameter type '%s'".formatted(type.getName(), parameter.getType().getName()));
@@ -48,13 +65,13 @@ public final class ArgumentTypeResolver<S> implements ArgumentTypeRegistry<S> {
         if (entry == null) { return Optional.empty(); }
 
         for (var e : entry.parsedChecks.entrySet()) {
-            if (e.getKey().test(type, parameter)) {
+            if (e.getKey().test(type, parameter, method)) {
                 return Optional.of(new Result<>(null, e.getValue()));
             }
         }
 
         for (var e : entry.virtualChecks.entrySet()) {
-            if (e.getKey().test(type, parameter)) {
+            if (e.getKey().test(type, parameter, method)) {
                 return Optional.of(new Result<>(e.getValue(), null));
             }
         }
@@ -69,16 +86,8 @@ public final class ArgumentTypeResolver<S> implements ArgumentTypeRegistry<S> {
         return Optional.empty();
     }
 
-
-    @Override public <T> void register(Class<T> type, ArgumentType<T> arg) {
-        register(type, null, arg);
-    }
-    @Override public <T> void register(Class<? extends Annotation> ann, Class<T> type, ArgumentType<T> arg) {
-        register(type, (t,p) -> p.isAnnotationPresent(ann), arg);
-    }
     @Override @SuppressWarnings("unchecked")
-    public <T> void register(Class<T> type, BiPredicate<Class<T>, Parameter> check, ArgumentType<T> arg) {
-
+    public <T> void register(Class<T> type, ParameterPredicate<T> check, ArgumentType<T> arg) {
         Entry<S, T> e = (Entry<S, T>) entries.computeIfAbsent(type, k -> new Entry<>());
         if (check == null) {
             if (e.defaultParsed != null)
@@ -88,15 +97,8 @@ public final class ArgumentTypeResolver<S> implements ArgumentTypeRegistry<S> {
             e.parsedChecks.put(check, arg);
         }
     }
-    @Override public <T> void register(Class<T> type, VirtualArgumentType<S, T> arg) {
-        register(type, null, arg);
-    }
-    @Override public <T> void register(Class<? extends Annotation> ann, Class<T> type,
-                                       VirtualArgumentType<S, T> arg) {
-        register(type, (t,p) -> p.isAnnotationPresent(ann), arg);
-    }
     @Override @SuppressWarnings("unchecked")
-    public <T> void register(Class<T> type, BiPredicate<Class<T>, Parameter> check, VirtualArgumentType<S, T> arg) {
+    public <T> void register(Class<T> type, ParameterPredicate<T> check, VirtualArgumentType<S, T> arg) {
         Entry<S, T> e = (Entry<S, T>) entries.computeIfAbsent(type, k -> new Entry<>());
         if (check == null) {
             if (e.defaultVirtual != null)

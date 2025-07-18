@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
+import com.kntrel.mc.commvoker.argument.ArgumentTypeRegistration;
 import com.kntrel.mc.commvoker.argument.ArgumentTypeRegistry;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
@@ -10,19 +11,21 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.lang.reflect.Method;
 import java.util.*;
 
-public abstract class BaseCommvoker<T> {
+public abstract class BaseCommvoker<S> {
 
-    private final ArgumentTypeResolver argumentTypeResolver_;
-    private final CommandParser commandParser_;
-    private final CommandDispatcher<T> dispatcher_;
+    private final ArgumentTypeResolver<S> argumentTypeResolver_;
+    private final CommandParser<S> commandParser_;
+    private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
 
 
-    public BaseCommvoker(CommandDispatcher<T> commandDispatcher) {
+    public BaseCommvoker(CommandDispatcher<S> commandDispatcher) {
         this.dispatcher_ = commandDispatcher;
-        this.argumentTypeResolver_ = new ArgumentTypeResolver();
-        this.commandParser_ = new CommandParser(this.argumentTypeResolver_);
+        this.argumentTypeResolver_ = ArgumentTypeResolver.newDefault();
+        this.commandParser_ = new CommandParser<>(this.argumentTypeResolver_);
         this.instanceClasses_ = new HashSet<>();
+
+        this.defaultRegistrations().forEach(r -> this.getArgumentTypeRegistry().register(r));
     }
 
 
@@ -68,7 +71,7 @@ public abstract class BaseCommvoker<T> {
                 }
                 if (!annotation.extend()) {
                     CommandParser.Token[] newTokens = new CommandParser.Token[tokens.length + 1];
-                    newTokens[0] = new CommandParser.Token(0, m.getName(), CommandParser.TokenType.LITERAL);
+                    newTokens[0] = new CommandParser.Token(m.getName(), CommandParser.TokenType.LITERAL);
                     System.arraycopy(tokens, 0, newTokens, 1, tokens.length);
                     tokens = newTokens;
                 }
@@ -80,13 +83,12 @@ public abstract class BaseCommvoker<T> {
                 tokens = newTokens;
             }
 
-            LiteralArgumentBuilder<T> commandTree;
+            LiteralArgumentBuilder<S> commandTree;
             try {
-                commandTree = this.commandParser_.brigadierCommand(tokens, m);
+                commandTree = this.commandParser_.brigadierCommand(tokens, m, src);
             } catch (BadCommandMethodException e) {
                 throw new BadCommandClassException(src, e);
             }
-
 
             this.dispatcher_.register(commandTree);
         }
@@ -94,8 +96,11 @@ public abstract class BaseCommvoker<T> {
         this.instanceClasses_.add(src.getClass());
     }
 
-    public ArgumentTypeRegistry getArgumentTypeRegistry() {
+    public ArgumentTypeRegistry<S> getArgumentTypeRegistry() {
         return this.argumentTypeResolver_;
     }
 
+    protected Iterable<ArgumentTypeRegistration<S, ?>> defaultRegistrations() {
+        return List.of();
+    }
 }
