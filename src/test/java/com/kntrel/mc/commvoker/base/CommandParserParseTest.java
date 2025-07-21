@@ -6,17 +6,16 @@ import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.mock.MockVirtual;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import java.lang.reflect.Method;
-import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static com.mojang.brigadier.builder.LiteralArgumentBuilder.*;
 import static com.mojang.brigadier.builder.RequiredArgumentBuilder.*;
 import static com.mojang.brigadier.arguments.StringArgumentType.*;
+import static com.kntrel.mc.commvoker.test.Assertions.*;
 
 public class CommandParserParseTest {
 
@@ -48,7 +47,7 @@ public class CommandParserParseTest {
     @Command("test6 {first} * * {} {last}")
     void test6(String a, String b, String c, String d) {}
 
-    @Command("test7 {fist} * * * {} {last}")
+    @Command("test7 {first} * * * {} {last}")
     void test7(String a, String b, String c, String d) {}
 
     @Command("test8 * foo")
@@ -78,10 +77,10 @@ public class CommandParserParseTest {
 
     @Test void parse_noArgs() {
         CommandNode<?> subject = assertCommandMethod("foo");
-        assertEquivalent(literal("foo").build(), subject);
+        assertEqualTrees(literal("foo").build(), subject);
 
         subject = assertCommandMethod("foo1");
-        assertEquivalent(literal("foo").then(literal("bar")).build(), subject);
+        assertEqualTrees(literal("foo").then(literal("bar")).build(), subject);
     }
 
     @Test void parse_implicitWildcard() {
@@ -94,7 +93,7 @@ public class CommandParserParseTest {
                 )
             ).build();
 
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
     }
 
     @Test void parse_wildcardWIthTrailing() {
@@ -113,7 +112,7 @@ public class CommandParserParseTest {
                 )
             ).build();
 
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
     }
 
     @Test void parse_wildcardWIthLeading() {
@@ -129,10 +128,10 @@ public class CommandParserParseTest {
             ).build();
 
         CommandNode<?> subject = assertCommandMethod("test2", String.class, String.class, String.class, String.class);
-        assertEquivalent(literal("test2").then(tail).build(),subject);
+        assertEqualTrees(literal("test2").then(tail).build(),subject);
 
         subject = assertCommandMethod("test3", String.class, String.class, String.class, String.class);
-        assertEquivalent(literal("test3").then(tail).build(),subject);
+        assertEqualTrees(literal("test3").then(tail).build(),subject);
     }
 
     @Test void parse_wildcardInTheMiddle() {
@@ -151,7 +150,7 @@ public class CommandParserParseTest {
                 )
             ).build();
 
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
     }
 
     @Test void parse_0argWildcardInTheMiddle() {
@@ -168,10 +167,10 @@ public class CommandParserParseTest {
             ).build();
 
         CommandNode<?> subject = assertCommandMethod("test5", String.class, String.class, String.class, String.class);
-        assertEquivalent(literal("test5").then(tail).build(), subject);
+        assertEqualTrees(literal("test5").then(tail).build(), subject);
 
         subject = assertCommandMethod("test6", String.class, String.class, String.class, String.class);
-        assertEquivalent(literal("test6").then(tail).build(), subject);
+        assertEqualTrees(literal("test6").then(tail).build(), subject);
     }
 
     @Test void parse_tooManyArgs(TestReporter reporter) {
@@ -203,7 +202,7 @@ public class CommandParserParseTest {
                 )
             ).build();
         CommandNode<?> subject = assertCommandMethod("test8", String.class, String.class, String.class, String.class);
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
 
         against = literal("test9")
             .then(
@@ -222,7 +221,7 @@ public class CommandParserParseTest {
                 )
             ).build();
         subject = assertCommandMethod("test9", String.class, String.class, String.class, String.class);
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
 
         against = literal("test10")
             .then(
@@ -241,7 +240,7 @@ public class CommandParserParseTest {
                 )
             ).build();
         subject = assertCommandMethod("test10", String.class, String.class, String.class, String.class);
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
     }
 
     @Test void parse_withVirtual() {
@@ -266,7 +265,7 @@ public class CommandParserParseTest {
             ).build();
 
         CommandNode<?> subject = assertCommandMethod("test11", Object.class, String.class, String.class, String.class, String.class);
-        assertEquivalent(against, subject);
+        assertEqualTrees(against, subject);
     }
 
     private Method getMethod(String name, Class<?>... args) {
@@ -286,28 +285,5 @@ public class CommandParserParseTest {
         var tokens = assertValidTokens(annotation.value());
         LiteralArgumentBuilder<?> tree = assertDoesNotThrow(() -> parser.brigadierCommand(tokens, m, this));
         return tree.build();
-    }
-    private void assertEquivalent(CommandNode<?> a, CommandNode<?> b) {
-        assertEquals(a.getName(), b.getName());
-
-        Queue<CommandNode<?>[]> queue = new LinkedList<>();
-        queue.add(new CommandNode[] {a, b});
-
-        while (!queue.isEmpty()) {
-            a = queue.peek()[0];
-            b = queue.poll()[1];
-
-            assertInstanceOf(a.getClass(), b);
-            assertEquals(a.getChildren().size(), b.getChildren().size());
-            if (a instanceof ArgumentCommandNode<?,?> arg) {
-                assertInstanceOf(arg.getType().getClass(), ((ArgumentCommandNode<?, ?>) b).getType());
-            }
-
-            for (CommandNode<?> childA : a.getChildren()) {
-                CommandNode<?> childB = b.getChild(childA.getName());
-                assertNotNull(childB, "No child '" + childA.getName() + "' found");
-                queue.add(new CommandNode[]{childA, childB});
-            }
-        }
     }
 }

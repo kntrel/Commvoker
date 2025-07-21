@@ -41,6 +41,10 @@ class CommandParser<S> {
 
     //UTIL
     public Token[] tokenize(String raw) throws BadCommandTokenException {
+        if (raw == null || raw.isEmpty()) {
+            return new Token[0];
+        }
+
         String[] words = raw.split("\\s+");
         Token[] tokens = new Token[words.length];
         int lastWildcardPos = -1;

@@ -8,6 +8,7 @@ import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -40,20 +41,20 @@ public abstract class BaseCommvoker<S> {
                 .toList();
 
         Command outerAnnotation = clazz.getAnnotation(Command.class);
-        boolean nested = outerAnnotation != null && !outerAnnotation.value().isEmpty();
+        boolean nested = outerAnnotation != null;
         CommandParser.Token[] outerTokens = new CommandParser.Token[0];
 
-        if (nested) {
-            try {
+        if (nested) try {
+            if (outerAnnotation.value().isEmpty()) {
+                outerTokens = this.commandParser_.tokenize(Utils.toSnakeCase(clazz.getSimpleName()));
+            } else {
                 outerTokens = this.commandParser_.tokenize(outerAnnotation.value());
-            } catch (BadCommandTokenException e) {
-                throw new BadCommandClassException(src, e);
+                if (outerTokens.length < 1 || !outerTokens[0].type().equals(CommandParser.TokenType.LITERAL)) {
+                    outerTokens = Utils.arrayJoin(this.commandParser_.tokenize(Utils.toSnakeCase(clazz.getSimpleName())), outerTokens);
+                }
             }
-            if (outerTokens.length < 1) {
-                nested = false;
-            } else if (!outerTokens[0].type().equals(CommandParser.TokenType.LITERAL)) {
-                throw new BadCommandClassException(src, "Firs argument of a @Command annotated class must be a literal.");
-            }
+        } catch (BadCommandTokenException e) {
+            throw new BadCommandClassException(src, e);
         }
 
         for (Method m : commandMethods) {
@@ -70,17 +71,14 @@ public abstract class BaseCommvoker<S> {
                     throw new BadCommandClassException(src, new BadCommandMethodException(m, "'extend = true' command methods are only valid inside @Command annotated classes"));
                 }
                 if (!annotation.extend()) {
-                    CommandParser.Token[] newTokens = new CommandParser.Token[tokens.length + 1];
-                    newTokens[0] = new CommandParser.Token(m.getName(), CommandParser.TokenType.LITERAL);
-                    System.arraycopy(tokens, 0, newTokens, 1, tokens.length);
-                    tokens = newTokens;
+                    tokens = Utils.arrayJoin(
+                            new CommandParser.Token[] { new CommandParser.Token(Utils.toSnakeCase(m.getName()), CommandParser.TokenType.LITERAL) },
+                            tokens
+                    );
                 }
             }
             if (nested) {
-                CommandParser.Token[] newTokens = new CommandParser.Token[outerTokens.length + tokens.length];
-                System.arraycopy(outerTokens, 0, newTokens, 0, outerTokens.length);
-                System.arraycopy(tokens, 0, newTokens, outerTokens.length, tokens.length);
-                tokens = newTokens;
+                tokens = Utils.arrayJoin(outerTokens, tokens);
             }
 
             LiteralArgumentBuilder<S> commandTree;
@@ -90,10 +88,18 @@ public abstract class BaseCommvoker<S> {
                 throw new BadCommandClassException(src, e);
             }
 
-            this.dispatcher_.register(commandTree);
+            this.register(commandTree);
         }
 
         this.instanceClasses_.add(src.getClass());
+    }
+
+    public void register(LiteralArgumentBuilder<S> tree) {
+        this.dispatcher_.register(tree);
+    }
+
+    public int execute(S src, String command) throws CommandSyntaxException {
+        return this.dispatcher_.execute(command, src);
     }
 
     public ArgumentTypeRegistry<S> getArgumentTypeRegistry() {
@@ -102,5 +108,9 @@ public abstract class BaseCommvoker<S> {
 
     protected Iterable<ArgumentTypeRegistration<S, ?>> defaultRegistrations() {
         return List.of();
+    }
+
+    protected CommandDispatcher<S> getCommandDispatcher() {
+        return this.dispatcher_;
     }
 }
