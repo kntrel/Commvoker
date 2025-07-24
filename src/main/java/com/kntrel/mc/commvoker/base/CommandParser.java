@@ -1,5 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.mojang.brigadier.arguments.ArgumentType;
@@ -30,11 +32,11 @@ class CommandParser<S> {
 
 
     //FIElDS
-    private final ArgumentTypeResolver<S> argumentTypeResolver_;
+    private final ArgumentResolver<S> argumentTypeResolver_;
 
 
     //CONSTRUCTORS
-    CommandParser(ArgumentTypeResolver<S> argumentTypeResolver) {
+    CommandParser(ArgumentResolver<S> argumentTypeResolver) {
         this.argumentTypeResolver_ = argumentTypeResolver;
     }
 
@@ -124,7 +126,7 @@ class CommandParser<S> {
         Queue<ArgumentTypeInfo> parsed = new LinkedList<>();
         for (int i = 0; i < params.length; i++) {
             Parameter param = params[i];
-            ArgumentTypeResolver.Result<S, ?> resolved = this.argumentTypeResolver_.resolve(param.getType(), param, method).orElseThrow(
+            ArgumentDescriptor<S, ?> resolved = this.argumentTypeResolver_.resolve(param.getType(), param, method).orElseThrow(
                 () -> new BadCommandMethodException(method, "Cannot resolve ArgumentType for parameter " + param.getName())
             );
             if (resolved.isParsed()) {

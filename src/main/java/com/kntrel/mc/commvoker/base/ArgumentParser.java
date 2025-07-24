@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
 interface ArgumentParser<S, T> {

@@ -1,7 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
-import com.kntrel.mc.commvoker.argument.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.mock.MockVirtual;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;

@@ -1,8 +1,8 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
-import com.kntrel.mc.commvoker.argument.ArgumentTypeRegistration;
-import com.kntrel.mc.commvoker.argument.ArgumentTypeRegistry;
+import com.kntrel.mc.commvoker.argument.ArgumentRegistry;
+import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
@@ -14,7 +14,7 @@ import java.util.*;
 
 public abstract class BaseCommvoker<S> {
 
-    private final ArgumentTypeResolver<S> argumentTypeResolver_;
+    private final ArgumentResolver<S> argumentTypeResolver_;
     private final CommandParser<S> commandParser_;
     private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
@@ -22,7 +22,7 @@ public abstract class BaseCommvoker<S> {
 
     public BaseCommvoker(CommandDispatcher<S> commandDispatcher) {
         this.dispatcher_ = commandDispatcher;
-        this.argumentTypeResolver_ = ArgumentTypeResolver.newDefault();
+        this.argumentTypeResolver_ = new ArgumentResolverImpl<>();
         this.commandParser_ = new CommandParser<>(this.argumentTypeResolver_);
         this.instanceClasses_ = new HashSet<>();
 
@@ -102,7 +102,7 @@ public abstract class BaseCommvoker<S> {
         return this.dispatcher_.execute(command, src);
     }
 
-    public ArgumentTypeRegistry<S> getArgumentTypeRegistry() {
+    public ArgumentRegistry<S> getArgumentTypeRegistry() {
         return this.argumentTypeResolver_;
     }
 

@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.argument;
+package com.kntrel.mc.commvoker.argument.type;
 
 import com.mojang.brigadier.context.CommandContext;
 
