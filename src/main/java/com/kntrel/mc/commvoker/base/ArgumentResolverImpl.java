@@ -2,6 +2,7 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.*;
 import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
+import com.kntrel.mc.commvoker.argument.bind.ArgumentGatherer;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.SetMap;
 import java.lang.annotation.Annotation;
@@ -33,7 +34,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
         this.unBound_.add(binding);
     }
 
-    @Override public ArgumentDescriptor<S, ?> resolve(ParameterContext ctx) {
+    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
 
         PriorityQueue<ArgumentBinding<S, ?>> matches = new PriorityQueue<>();
 
@@ -79,7 +80,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
             throw new NoSuchArgumentBindingException(ctx);
         }
 
-        ArgumentResolutionContext<S> resolutionContext = new ArgumentResolutionContext<>(ctx, this, matches);
+        ArgumentGatherer<S> resolutionContext = new ArgumentGatherer<>(ctx, this, matches);
         return binding.descriptor(resolutionContext);
     }
 }

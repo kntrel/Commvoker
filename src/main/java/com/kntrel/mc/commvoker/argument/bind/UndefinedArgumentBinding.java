@@ -1,7 +1,6 @@
 package com.kntrel.mc.commvoker.argument.bind;
 
-import com.kntrel.mc.commvoker.argument.ArgumentResolutionContext;
-import com.kntrel.mc.commvoker.argument.ParameterContext;
+import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.util.Priority;
 import com.mojang.brigadier.arguments.ArgumentType;
 import java.lang.annotation.Annotation;
@@ -16,16 +15,16 @@ public interface UndefinedArgumentBinding<T> extends SimpleArgumentBinding<T> {
     <S> ArgumentBinding<S, T> defineWithRequirement(Predicate<S> requirement);
 
     record Type<T>(
-        Function<ArgumentResolutionContext<?>, ArgumentType<T>> supplier,
+        Function<ArgumentContext, ArgumentType<T>> supplier,
         Class<T> toClass,
         Class<? extends Annotation> toAnnotation,
-        Predicate<ParameterContext> toCondition,
+        Predicate<ArgumentContext> toCondition,
         Priority priority
     ) implements UndefinedArgumentBinding<T> {
 
         @Override public <S> ArgumentBinding.Type<S, T> defineWithRequirement(Predicate<S> requirement) {
             return new ArgumentBinding.Type<>(
-                    this.supplier::apply, this.toClass, this.toAnnotation, this.toCondition, requirement, this.priority
+                    this.supplier, this.toClass, this.toAnnotation, this.toCondition, requirement, this.priority
             );
         }
 
@@ -35,7 +34,7 @@ public interface UndefinedArgumentBinding<T> extends SimpleArgumentBinding<T> {
         Function<ArgumentGatherer<?>, ArgumentType<T>> supplier,
         Class<T> toClass,
         Class<? extends Annotation> toAnnotation,
-        Predicate<ParameterContext> toCondition,
+        Predicate<ArgumentContext> toCondition,
         Priority priority
     ) implements UndefinedArgumentBinding<T> {
 

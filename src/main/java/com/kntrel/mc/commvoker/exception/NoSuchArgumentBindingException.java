@@ -1,26 +1,26 @@
 package com.kntrel.mc.commvoker.exception;
 
-import com.kntrel.mc.commvoker.argument.ParameterContext;
+import com.kntrel.mc.commvoker.argument.ArgumentContext;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 
 public class NoSuchArgumentBindingException extends ArgumentResolutionException {
 
-    private final ParameterContext parameterContext_;
+    private final ArgumentContext argumentContext_;
 
-    public NoSuchArgumentBindingException(ParameterContext parameterContext) {
-        this.parameterContext_ = parameterContext;
+    public NoSuchArgumentBindingException(ArgumentContext argumentContext) {
+        this.argumentContext_ = argumentContext;
     }
-    public NoSuchArgumentBindingException(ParameterContext parameterContext, String msg) {
+    public NoSuchArgumentBindingException(ArgumentContext argumentContext, String msg) {
         super(msg);
-        this.parameterContext_ = parameterContext;
+        this.argumentContext_ = argumentContext;
     }
 
     @Override public String getMessage() {
         String msg = super.getMessage();
         if (msg != null && !msg.isEmpty()) { return msg; }
-        Parameter param = this.parameterContext_.parameter();
+        Parameter param = this.argumentContext_.parameter();
         StringBuilder m = new StringBuilder();
 
         m.append("No registered ArgumentBuilder able to handle argument: ");
@@ -31,9 +31,9 @@ public class NoSuchArgumentBindingException extends ArgumentResolutionException 
         m       .append(param.getParameterizedType().getTypeName())
                 .append(' ').append(param.getName())
                 .append(" in method ")
-                .append(this.parameterContext_.method().getDeclaringClass().getName())
+                .append(this.argumentContext_.method().getDeclaringClass().getName())
                 .append('#')
-                .append(this.parameterContext_.method().getName());
+                .append(this.argumentContext_.method().getName());
 
         return m.toString();
     }

@@ -1,47 +1,62 @@
 package com.kntrel.mc.commvoker.argument.bind;
 
+import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.ArgumentResolutionContext;
+import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.mojang.brigadier.arguments.ArgumentType;
 import java.lang.reflect.Type;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
-public class ArgumentGatherer<S> {
+public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentResolver<S> {
 
-    private final ArgumentResolutionContext<S> context_;
-    private final Set<ArgumentDescriptor<S, ?>> gathered_;
 
-    public ArgumentGatherer(ArgumentResolutionContext<S> context) {
-        this.context_ = context;
+    private final ArgumentResolver<S> argumentResolver_;
+    private final PriorityQueue<ArgumentBinding<S, ?>> alsoResolved_;
+    private final Set<ArgumentDescriptor<S>> gathered_;
+
+    public ArgumentGatherer(ArgumentContext delegate, ArgumentResolver<S> argumentResolver, PriorityQueue<ArgumentBinding<S, ?>> alsoResolved) {
+        super(delegate);
+        this.argumentResolver_ = argumentResolver;
+        this.alsoResolved_ = alsoResolved;
         this.gathered_ = new LinkedHashSet<>();
     }
 
-    public ArgumentResolutionContext<S> getContext() {
-        return this.context_;
+    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
+        ArgumentDescriptor<S> result = this.argumentResolver_.resolve(ctx);
+        this.gathered_.add(result);
+        return result;
     }
 
-    public ArgumentType<?> resolveWIthType(Type type) {
-        ArgumentDescriptor<S, ?> descriptor = this.context_.resolveWithType(type);
-        ArgumentType<?> out = descriptor.argumentTYpe().getTheOneOrThrow(() -> new NoSuchArgumentBindingException(this.context_));
+    public ArgumentType<?> resolveType(Type type) {
+        if (type.equals(this.type())) {
+            return this.resolveNextType();
+        }
+
+        ArgumentContext ctx = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command(), this.commandTokenIndex());
+
+        ArgumentDescriptor<S> descriptor = this.resolve(ctx);
+        ArgumentType<?> result = descriptor.eitherType().getTheOneOrThrow(() -> new NoSuchArgumentBindingException(this));
+
         this.gathered_.add(descriptor);
-        return out;
+        return result;
     }
 
-    public ArgumentType<?> resolveNext() {
-        ArgumentDescriptor<S, ?> next;
+    public ArgumentType<?> resolveNextType() {
+        ArgumentDescriptor<S> next;
         do {
-            next = this.context_.resolveNext();
-        } while (next.argumentTYpe().isTheOther());
+            ArgumentBinding<S, ?> binding = this.alsoResolved_.poll();
+            if (binding == null) {
+                throw new NoSuchArgumentBindingException(this);
+            }
+            next = binding.descriptor(this);
+        } while (next instanceof ArgumentDescriptor.Virtual<S,?>);
         this.gathered_.add(next);
-        return next.argumentTYpe().getTheOne();
+        return next.eitherType().getTheOne();
     }
 
-    Collection<ArgumentDescriptor<S, ?>> getGathered() {
+    Collection<ArgumentDescriptor<S>> getGathered() {
         return this.gathered_;
     }
 

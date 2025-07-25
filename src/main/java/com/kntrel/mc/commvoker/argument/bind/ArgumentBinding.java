@@ -1,10 +1,8 @@
 package com.kntrel.mc.commvoker.argument.bind;
 
 import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.ArgumentResolutionContext;
-import com.kntrel.mc.commvoker.argument.ParameterContext;
+import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
-import com.kntrel.util.Either;
 import com.kntrel.util.Multipredicate;
 import com.kntrel.util.Priority;
 import com.mojang.brigadier.arguments.ArgumentType;
@@ -14,44 +12,44 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public sealed interface ArgumentBinding<S, T> extends SimpleArgumentBinding<T> {
+public interface ArgumentBinding<S, T> extends SimpleArgumentBinding<T> {
 
-    ArgumentDescriptor<S, T> descriptor(ArgumentResolutionContext<S> ctx);
+    ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx);
 
     record Type<S, T>(
-            Function<ArgumentResolutionContext<S>, ArgumentType<T>> supplier,
+            Function<ArgumentContext, ArgumentType<T>> supplier,
             Class<T> toClass,
             Class<? extends Annotation> toAnnotation,
-            Predicate<ParameterContext> toCondition,
+            Predicate<ArgumentContext> toCondition,
             Predicate<S> requirement,
             Priority priority
-    ) implements ArgumentBinding<S, T>, Function<ArgumentResolutionContext<S>, ArgumentType<T>>  {
+    ) implements ArgumentBinding<S, T>, Function<ArgumentContext, ArgumentType<T>>  {
         @Override
-        public ArgumentType<T> apply(ArgumentResolutionContext<S> ctx) {
+        public ArgumentType<T> apply(ArgumentContext ctx) {
             return this.supplier.apply(ctx);
         }
 
         @Override
-        public ArgumentDescriptor<S, T> descriptor(ArgumentResolutionContext<S> ctx) {
-            return new ArgumentDescriptor<>(Either.ofTheOne(this.apply(ctx)), this.requirement);
+        public ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx) {
+            return ArgumentDescriptor.of(this.apply(ctx), this.requirement);
         }
     }
 
     record Virtual<S, T>(
-            Function<ArgumentResolutionContext<S>, VirtualArgumentType<S, T>> supplier,
+            Function<ArgumentContext, VirtualArgumentType<S, T>> supplier,
             Class<T> toClass,
             Class<? extends Annotation> toAnnotation,
-            Predicate<ParameterContext> toCondition,
+            Predicate<ArgumentContext> toCondition,
             Predicate<S> requirement,
             Priority priority
-     ) implements ArgumentBinding<S, T>, Function<ArgumentResolutionContext<S>, VirtualArgumentType<S, T>> {
+     ) implements ArgumentBinding<S, T>, Function<ArgumentContext, VirtualArgumentType<S, T>> {
 
-        @Override public VirtualArgumentType<S, T> apply(ArgumentResolutionContext<S> ctx) {
+        @Override public VirtualArgumentType<S, T> apply(ArgumentContext ctx) {
             return this.supplier.apply(ctx);
         }
         @Override
-        public ArgumentDescriptor<S, T> descriptor(ArgumentResolutionContext<S> ctx) {
-            return new ArgumentDescriptor<>(Either.ofTheOther(this.apply(ctx)), this.requirement);
+        public ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx) {
+            return ArgumentDescriptor.of(this.apply(ctx), this.requirement);
         }
     }
 
@@ -59,27 +57,26 @@ public sealed interface ArgumentBinding<S, T> extends SimpleArgumentBinding<T> {
             Function<ArgumentGatherer<S>, ArgumentType<T>> supplier,
             Class<T> toClass,
             Class<? extends Annotation> toAnnotation,
-            Predicate<ParameterContext> toCondition,
+            Predicate<ArgumentContext> toCondition,
             Predicate<S> requirement,
             Priority priority
 
-    ) implements ArgumentBinding<S, T>, Function<ArgumentResolutionContext<S>, ArgumentType<T>> {
+    ) implements ArgumentBinding<S, T>, Function<ArgumentGatherer<S>, ArgumentType<T>> {
 
-        @Override public ArgumentType<T> apply(ArgumentResolutionContext<S> ctx) {
-            return this.supplier.apply(new ArgumentGatherer<>(ctx));
+        @Override public ArgumentType<T> apply(ArgumentGatherer<S> ctx) {
+            return this.supplier.apply(ctx);
         }
         @Override
-        public ArgumentDescriptor<S, T> descriptor(ArgumentResolutionContext<S> ctx) {
-            ArgumentGatherer<S> gatherer = new ArgumentGatherer<>(ctx);
-            ArgumentType<T> type = this.supplier.apply(gatherer);
+        public ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx) {
+            ArgumentType<T> type = this.supplier.apply(ctx);
 
             Set<Predicate<S>> requirements = new LinkedHashSet<>();
             if (this.requirement != null) {
                 requirements.add(this.requirement);
             }
-            requirements.addAll(gatherer.getRequirements());
-
-            return new ArgumentDescriptor<>(Either.ofTheOne(type), Multipredicate.and(requirements));
+            requirements.addAll(ctx.getRequirements());
+            
+            return ArgumentDescriptor.of(type, Multipredicate.and(requirements));
         }
     }
 }

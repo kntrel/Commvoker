@@ -6,8 +6,6 @@ import com.kntrel.mc.commvoker.builtin.argumentType.CollectionArgumentType;
 import com.kntrel.mc.commvoker.exception.ArgumentResolutionException;
 import com.mojang.brigadier.arguments.*;
 
-import javax.lang.model.type.ArrayType;
-import java.lang.reflect.Array;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -53,7 +51,7 @@ public final class ArgumentBindings {
         BOOLEAN = argument(BoolArgumentType::bool)
                 .toClass(Boolean.class)
                 .bind(),
-        PRIMITIVE = compose(g -> g.resolveWIthType(boxed((Class<?>) g.getContext().type())))
+        PRIMITIVE = compose(g -> g.resolveType(boxed((Class<?>) g.getContext().type())))
                 .toCondition(ctx -> ctx.type() instanceof Class<?> c && PRIMITIVES.contains(c))
                 .bind(),
         LIST = compose(g -> {
@@ -61,7 +59,7 @@ public final class ArgumentBindings {
                     if (!(type instanceof ParameterizedType parameterizedType)) {
                         throw new ArgumentResolutionException();
                     }
-                    ArgumentType<?> wrapped = g.resolveWIthType(parameterizedType.getActualTypeArguments()[0]);
+                    ArgumentType<?> wrapped = g.resolveType(parameterizedType.getActualTypeArguments()[0]);
                     return CollectionArgumentType.listOf(wrapped);
                 })
                 .toClass((Class) List.class)
@@ -71,7 +69,7 @@ public final class ArgumentBindings {
                 if (!(type instanceof ParameterizedType parameterizedType)) {
                     throw new ArgumentResolutionException();
                 }
-                ArgumentType<?> wrapped = g.resolveWIthType(parameterizedType.getActualTypeArguments()[0]);
+                ArgumentType<?> wrapped = g.resolveType(parameterizedType.getActualTypeArguments()[0]);
                 return CollectionArgumentType.setOf(wrapped);
             })
                     .toClass((Class) Set.class)

@@ -8,7 +8,7 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.Objects;
 
-public class ParameterContext {
+public class ArgumentContext {
 
     //FIELDS
     private final Parameter parameter_;
@@ -20,7 +20,7 @@ public class ParameterContext {
 
 
     //CONSTRUCTORS
-    public ParameterContext(
+    public ArgumentContext(
             Parameter parameter,
             Type type,
             Method method,
@@ -48,7 +48,7 @@ public class ParameterContext {
         this.command_ = Objects.requireNonNull(command, "command");
         this.commandTokenIndex_ = commandTokenIndex;
     }
-    public ParameterContext(ParameterContext other) {
+    public ArgumentContext(ArgumentContext other) {
         this(other.parameter_, other.type_, other.method_, other.parameterIndex_, other.command_, other.commandTokenIndex_);
     }
 
@@ -78,7 +78,7 @@ public class ParameterContext {
     public boolean equals(Object o) {
         if (o == null) { return false; }
         if (this == o) { return true; }
-        if (!(o instanceof ParameterContext other)) { return false; }
+        if (!(o instanceof ArgumentContext other)) { return false; }
         return     parameterIndex_ == other.parameterIndex_
                 && commandTokenIndex_ == other.commandTokenIndex_
                 && parameter_.equals(other.parameter_)
