@@ -12,6 +12,7 @@
 
     <modules>
         <module>commvoker-core</module>
+        <module>commvoker-bukkit</module>
     </modules>
 
 
