@@ -15,7 +15,7 @@ import java.util.*;
 
 public abstract class BaseCommvoker<S> {
 
-    private final ArgumentResolverImpl<S> argumentTypeResolver_;
+    private final ArgumentResolverImpl<S> argumentResolver_;
     private final CommandParser<S> commandParser_;
     private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
@@ -23,11 +23,11 @@ public abstract class BaseCommvoker<S> {
 
     public BaseCommvoker(CommandDispatcher<S> commandDispatcher) {
         this.dispatcher_ = commandDispatcher;
-        this.argumentTypeResolver_ = new ArgumentResolverImpl<>();
-        this.commandParser_ = new CommandParser<>(this.argumentTypeResolver_);
+        this.argumentResolver_ = new ArgumentResolverImpl<>();
+        this.commandParser_ = new CommandParser<>(this.argumentResolver_);
         this.instanceClasses_ = new HashSet<>();
 
-        ArgumentBindings.all().forEach(this.argumentTypeResolver_::register);
+        ArgumentBindings.all().forEach(this.argumentResolver_::register);
     }
 
 
@@ -99,12 +99,12 @@ public abstract class BaseCommvoker<S> {
         this.dispatcher_.register(tree);
     }
 
-    public int execute(S src, String command) throws CommandSyntaxException {
+    public int execute(String command, S src) throws CommandSyntaxException {
         return this.dispatcher_.execute(command, src);
     }
 
-    public ArgumentRegistry<S> getArgumentTypeRegistry() {
-        return this.argumentTypeResolver_;
+    public ArgumentRegistry<S> getArgumentRegistry() {
+        return this.argumentResolver_;
     }
 
     protected CommandDispatcher<S> getCommandDispatcher() {
