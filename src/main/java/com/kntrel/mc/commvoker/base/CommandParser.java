@@ -24,7 +24,6 @@ class CommandParser<S> {
 
     //ASSETS
     private record ParamInfo(Parameter param, int index) {}
-    private record ParamTokenInfo(CommandToken token, int index, ParamInfo param) {}
 
 
     //FIElDS
