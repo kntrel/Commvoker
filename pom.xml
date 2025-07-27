@@ -7,6 +7,13 @@
     <groupId>com.kntrel</groupId>
     <artifactId>commvoker</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>commvoker-parent</name>
+
+    <modules>
+        <module>commvoker-core</module>
+    </modules>
+
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -33,23 +40,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.mojang</groupId>
-            <artifactId>brigadier</artifactId>
-            <version>1.0.18</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>5.11.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>minecraft-repo</id>
-            <url>https://libraries.minecraft.net/</url>
-        </repository>
-    </repositories>
 
 </project>
