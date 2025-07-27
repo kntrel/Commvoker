@@ -1,18 +1,19 @@
 package com.kntrel.mc.commvoker.exception;
 
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
+import com.kntrel.mc.commvoker.argument.ParameterContext;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 
 public class NoSuchArgumentBindingException extends ArgumentResolutionException {
 
-    private final ArgumentContext argumentContext_;
+    private final ParameterContext argumentContext_;
 
-    public NoSuchArgumentBindingException(ArgumentContext argumentContext) {
+    public NoSuchArgumentBindingException(ParameterContext argumentContext) {
         this.argumentContext_ = argumentContext;
     }
-    public NoSuchArgumentBindingException(ArgumentContext argumentContext, String msg) {
+    public NoSuchArgumentBindingException(ParameterContext argumentContext, String msg) {
         super(msg);
         this.argumentContext_ = argumentContext;
     }

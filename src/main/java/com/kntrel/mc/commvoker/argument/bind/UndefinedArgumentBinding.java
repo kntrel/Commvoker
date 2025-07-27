@@ -7,7 +7,7 @@ import java.lang.annotation.Annotation;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public interface UndefinedArgumentBinding<T> extends SimpleArgumentBinding<T> {
+public interface UndefinedArgumentBinding<T> extends SimpleArgumentBinding<ArgumentContext, T> {
 
     default <S> ArgumentBinding<S, T> define() {
         return this.defineWithRequirement(null);

@@ -3,6 +3,7 @@ package com.kntrel.mc.commvoker.argument.bind;
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
+import com.kntrel.mc.commvoker.argument.ParameterContext;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.mojang.brigadier.arguments.ArgumentType;
 import java.lang.reflect.Type;
@@ -23,10 +24,15 @@ public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentReso
         this.gathered_ = new LinkedHashSet<>();
     }
 
-    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
-        ArgumentDescriptor<S> result = this.argumentResolver_.resolve(ctx);
+    @Override public ArgumentDescriptor.Parsed<S, ?> resolve(ArgumentContext ctx) {
+        ArgumentDescriptor.Parsed<S, ?> result = this.argumentResolver_.resolve(ctx);
         this.gathered_.add(result);
         return result;
+    }
+
+    @Override
+    public ArgumentDescriptor.Virtual<S, ?> resolveVirtual(ParameterContext ctx) {
+        return this.argumentResolver_.resolveVirtual(ctx);
     }
 
     public ArgumentType<?> resolveType(Type type) {
@@ -34,7 +40,7 @@ public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentReso
             return this.resolveNextType();
         }
 
-        ArgumentContext ctx = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command(), this.commandTokenIndex());
+        ArgumentContext ctx = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command(), this.commandTokenIndex(), this.previousTypes());
 
         ArgumentDescriptor<S> descriptor = this.resolve(ctx);
         ArgumentType<?> result = descriptor.eitherType().getTheOneOrThrow(() -> new NoSuchArgumentBindingException(this));

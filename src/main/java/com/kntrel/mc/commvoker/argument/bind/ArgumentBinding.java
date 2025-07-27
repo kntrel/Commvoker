@@ -2,6 +2,7 @@ package com.kntrel.mc.commvoker.argument.bind;
 
 import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
+import com.kntrel.mc.commvoker.argument.ParameterContext;
 import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
 import com.kntrel.util.Multipredicate;
 import com.kntrel.util.Priority;
@@ -12,9 +13,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public interface ArgumentBinding<S, T> extends SimpleArgumentBinding<T> {
+public interface ArgumentBinding<S, T> extends SimpleArgumentBinding<ArgumentContext, T> {
 
-    ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx);
+    ArgumentDescriptor.Parsed<S, T> descriptor(ArgumentGatherer<S> ctx);
 
     record Type<S, T>(
             Function<ArgumentContext, ArgumentType<T>> supplier,
@@ -30,25 +31,25 @@ public interface ArgumentBinding<S, T> extends SimpleArgumentBinding<T> {
         }
 
         @Override
-        public ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx) {
+        public ArgumentDescriptor.Parsed<S, T> descriptor(ArgumentGatherer<S> ctx) {
             return ArgumentDescriptor.of(this.apply(ctx), this.requirement);
         }
     }
 
     record Virtual<S, T>(
-            Function<ArgumentContext, VirtualArgumentType<S, T>> supplier,
+            Function<ParameterContext, VirtualArgumentType<S, T>> supplier,
             Class<T> toClass,
             Class<? extends Annotation> toAnnotation,
-            Predicate<ArgumentContext> toCondition,
+            Predicate<ParameterContext> toCondition,
             Predicate<S> requirement,
             Priority priority
-     ) implements ArgumentBinding<S, T>, Function<ArgumentContext, VirtualArgumentType<S, T>> {
+     ) implements VirtualArgumentBinding<S, T>, Function<ParameterContext, VirtualArgumentType<S, T>> {
 
-        @Override public VirtualArgumentType<S, T> apply(ArgumentContext ctx) {
+        @Override public VirtualArgumentType<S, T> apply(ParameterContext ctx) {
             return this.supplier.apply(ctx);
         }
         @Override
-        public ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx) {
+        public ArgumentDescriptor.Virtual<S, T> descriptor(ParameterContext ctx) {
             return ArgumentDescriptor.of(this.apply(ctx), this.requirement);
         }
     }
@@ -67,7 +68,7 @@ public interface ArgumentBinding<S, T> extends SimpleArgumentBinding<T> {
             return this.supplier.apply(ctx);
         }
         @Override
-        public ArgumentDescriptor<S> descriptor(ArgumentGatherer<S> ctx) {
+        public ArgumentDescriptor.Parsed<S, T> descriptor(ArgumentGatherer<S> ctx) {
             ArgumentType<T> type = this.supplier.apply(ctx);
 
             Set<Predicate<S>> requirements = new LinkedHashSet<>();

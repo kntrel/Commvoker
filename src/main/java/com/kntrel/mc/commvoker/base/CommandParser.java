@@ -1,9 +1,16 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
+import com.kntrel.mc.commvoker.argument.ParameterContext;
+import com.kntrel.mc.commvoker.command.CommandDefinition;
+import com.kntrel.mc.commvoker.command.CommandPattern;
+import com.kntrel.mc.commvoker.command.CommandPatternToken;
+import com.kntrel.mc.commvoker.command.CommandToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
+import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -11,50 +18,39 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 class CommandParser<S> {
 
     //ASSETS
-    enum TokenType { LITERAL, ARGUMENT, UNNAMED_ARGUMENT, WILDCARD }
-    record Token(String label, TokenType type) {
-        @Override public String toString() {
-            return switch (this.type()) {
-                case LITERAL -> this.label();
-                case ARGUMENT -> '<' + this.label() + '>';
-                case UNNAMED_ARGUMENT -> "<>";
-                case WILDCARD -> "*";
-            };
-        }
-    }
-    private record ArgumentTypeInfo(ArgumentType<?> argumentType, String paramName, Class<?> paramType, int arrayIndex) {}
-    private static final Token IMPLICIT_WILDCARD = new Token(null, TokenType.WILDCARD);
+    private record ParamInfo(Parameter param, int index) {}
+    private record ParamTokenInfo(CommandToken token, int index, ParamInfo param) {}
 
 
     //FIElDS
-    private final ArgumentResolver<S> argumentTypeResolver_;
+    private final ArgumentResolver<S> argumentResolver_;
 
 
     //CONSTRUCTORS
     CommandParser(ArgumentResolver<S> argumentTypeResolver) {
-        this.argumentTypeResolver_ = argumentTypeResolver;
+        this.argumentResolver_ = argumentTypeResolver;
     }
 
 
     //UTIL
-    public Token[] tokenize(String raw) throws BadCommandTokenException {
+    public CommandPatternToken[] tokenize(String raw) throws BadCommandTokenException {
         if (raw == null || raw.isEmpty()) {
-            return new Token[0];
+            return new CommandPatternToken[0];
         }
 
         String[] words = raw.split("\\s+");
-        Token[] tokens = new Token[words.length];
+        CommandPatternToken[] tokens = new CommandPatternToken[words.length];
         int lastWildcardPos = -1;
         int len = 0;
 
         for (int i = 0; i < words.length; i++) {
             String w = words[i];
-            TokenType type = categorize(w);
+            CommandPatternToken.Type type = categorize(w);
 
             String label = switch (type) {
                 case LITERAL -> w;
@@ -65,19 +61,24 @@ class CommandParser<S> {
             if (label != null) {
                 int err = valid(label);
                 if (err >= 0) {
-                    if (type.equals(TokenType.ARGUMENT)) { err++; }
+                    if (type.equals(CommandPatternToken.Type.ARGUMENT)) { err++; }
                     throw new BadCommandTokenException(raw, len + err);
                 }
             }
 
-            if (type.equals(TokenType.WILDCARD)) {
+            if (type.equals(CommandPatternToken.Type.WILDCARD)) {
                 if (lastWildcardPos > 0) {
-                    tokens[lastWildcardPos] = new Token(null, TokenType.UNNAMED_ARGUMENT);
+                    tokens[lastWildcardPos] = CommandPatternToken.argument();
                 }
                 lastWildcardPos = i;
             }
 
-            tokens[i] = new Token(label, type);
+            tokens[i] = switch (type) {
+                case LITERAL -> CommandPatternToken.literal(label);
+                case ARGUMENT -> CommandPatternToken.argument(label);
+                case UNNAMED_ARGUMENT -> CommandPatternToken.argument();
+                case WILDCARD -> CommandPatternToken.wildcard();
+            };
             len += w.length() + 1;
         }
 
@@ -92,105 +93,114 @@ class CommandParser<S> {
     }
 
     @SuppressWarnings("unchecked")
-    public LiteralArgumentBuilder<S> brigadierCommand(Token[] tokens, Method method, Object instance) throws BadCommandMethodException {
+    public LiteralArgumentBuilder<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
         // Guard assertions
-        if (tokens.length == 0) {
-            throw new IllegalArgumentException("empty token array");
+        if (patternTokens.length == 0) {
+            throw new IllegalArgumentException("empty CommandToken array");
         }
-        if (tokens[0].type() != TokenType.LITERAL) {
-            throw new BadCommandMethodException(method, "First token must be a literal");
+        if (patternTokens[0].type() != CommandPatternToken.Type.LITERAL) {
+            throw new BadCommandMethodException(method, "First CommandToken must be a literal");
         }
+        CommandPattern pattern = new CommandPattern(patternTokens);
 
-        // Locating the wildcard and figuring out how many leading and trailing arguments there are
-        int wildcardIndex = -1, leadingCount = 0, trailingCount = 0;
-        for (int i = tokens.length - 1; i > 0; i--) {
-            Token t = tokens[i];
-            if (t.type().equals(TokenType.LITERAL)) { continue; }
-            if (t.type().equals(TokenType.WILDCARD)) {
-                wildcardIndex = i;
-                trailingCount = leadingCount;
-                leadingCount = 0;
-                continue;
-            }
-            leadingCount++;
-        }
-        if (wildcardIndex < 0) {
-            wildcardIndex = tokens.length;
-            tokens = Arrays.copyOf(tokens, wildcardIndex + 1);
-            tokens[wildcardIndex] = IMPLICIT_WILDCARD;
-        }
-
-        // Resolving method argument types and collecting parsed ArgumentTypes
+        // Splitting virtual-mapped and parsed-mapped parameters
         Parameter[] params = method.getParameters();
         ArgumentParser<S, ?>[] argumentParsers = new ArgumentParser[params.length];
-        Queue<ArgumentTypeInfo> parsed = new LinkedList<>();
+        Queue<ParamInfo> parsedParams = new LinkedList<>();
+        List<Predicate<S>> requirements = new LinkedList<>();
         for (int i = 0; i < params.length; i++) {
             Parameter param = params[i];
-            ArgumentDescriptor<S, ?> resolved = this.argumentTypeResolver_.resolve(param.getType(), param, method).orElseThrow(
-                () -> new BadCommandMethodException(method, "Cannot resolve ArgumentType for parameter " + param.getName())
-            );
-            if (resolved.isParsed()) {
-                parsed.add(new ArgumentTypeInfo(resolved.parsed(), param.getName(), param.getType(), i));
-            } else {
-                argumentParsers[i] = ArgumentParser.of(resolved.virtual());
+            ParameterContext ctx = new ParameterContext(param, param.getParameterizedType(), method, i);
+            try {
+                ArgumentDescriptor.Virtual<S, ?> desc = this.argumentResolver_.resolveVirtual(ctx);
+                argumentParsers[i] = ArgumentParser.of(desc.argumentType());
+                Predicate<S> req = desc.requirement();
+                if (req != null) { requirements.add(req); }
+            } catch (NoSuchArgumentBindingException ignored) {
+                parsedParams.add(new ParamInfo(param, i));
             }
         }
 
         // Guard against mot enough parsed ArgumentTypes to cover for argument tokens
-        int minArgs = leadingCount + trailingCount;
-        if (minArgs > parsed.size()) {
-            throw new BadCommandMethodException(method, "Command expects a minimum of " + minArgs + " arguments, but methods exposes " + parsed.size());
+        if (pattern.argumentCount() > parsedParams.size()) {
+            throw new BadCommandMethodException(method, "Command expects a minimum of " + pattern.argumentCount() + " arguments, but methods exposes " + parsedParams.size());
         }
 
-
-        // Guard assertion. Ensuring the method has enough parameters to fulfill the token array
-        Stack<ArgumentBuilder<S, ?>> stack = new Stack<>();
-        stack.add(LiteralArgumentBuilder.literal(tokens[0].label()));
+        // Compiling a concrete CommandDefinition from the CommandPattern and parsed parameters
+        List<CommandToken> tokens = new LinkedList<>();
+        tokens.add(new CommandToken(pattern.getLabelAt(0), CommandToken.Type.LITERAL));
+        Map<Integer, ParamInfo> paramTokens = new HashMap<>();
         int i = 1;
-        while (i < tokens.length) {
-            Token t = tokens[i];
+        while (i < pattern.size()) {
+            CommandPatternToken t = pattern.getTokenAt(i);
 
-            if (t.type().equals(TokenType.LITERAL)) {
-                stack.add(LiteralArgumentBuilder.literal(t.label()));
+            if (t.isLiteral()) {
+                tokens.add(new CommandToken(t.label(), CommandToken.Type.LITERAL));
                 i++;
                 continue;
             }
 
-            if (i != wildcardIndex) {
+            if (!t.isWildcard()) {
                 i++;
-            } else if (trailingCount >= parsed.size()) {
+            } else if (pattern.afterWildcardArgumentCount() >= parsedParams.size()) {
                 i++;
                 continue;
             }
 
-            ArgumentTypeInfo argType = parsed.poll();
-            if (argType == null) { break; }
+            ParamInfo paramInfo = parsedParams.poll();
+            if (paramInfo == null) { break; }
 
             String label = t.label();
-            if (label == null || label.isEmpty()) { label = argType.paramName(); }
-            stack.add(RequiredArgumentBuilder.argument(label, argType.argumentType()));
-            argumentParsers[argType.arrayIndex()] = ArgumentParser.of(label, argType.paramType());
+            if (label == null || label.isEmpty()) { label = paramInfo.param().getName(); }
+            CommandToken token = new CommandToken(label, CommandToken.Type.ARGUMENT);
+            paramTokens.put(tokens.size(), paramInfo);
+            tokens.add(token);
+        }
+        CommandDefinition command = new CommandDefinition(tokens);
+
+        // Building the brigadier tree
+        Deque<ArgumentBuilder<S, ?>> stack = new LinkedList<>();
+        List<ArgumentType<?>> resolvedTypes = new LinkedList<>();
+        for (i = 0; i < command.size(); i++) {
+            CommandToken t = command.getTokenAt(i);
+            if (t.isLiteral()) {
+                stack.add(LiteralArgumentBuilder.literal(t.label()));
+                continue;
+            }
+
+            ParamInfo paramInfo = paramTokens.get(i);
+            Parameter param = paramInfo.param();
+            ArgumentContext ctx = new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, resolvedTypes.toArray(new ArgumentType[0]));
+            ArgumentDescriptor.Parsed<S, ?> desc = this.argumentResolver_.resolve(ctx);
+            ArgumentType<?> argType = desc.argumentType();;
+
+            RequiredArgumentBuilder<S, ?> arg = RequiredArgumentBuilder.argument(t.label(), argType);
+            if (desc.requirement() != null) { arg.requires(desc.requirement()); }
+            stack.add(arg);
+            resolvedTypes.add(argType);
+            argumentParsers[paramInfo.index()] = ArgumentParser.of(t.label(), param.getType());
         }
 
-        ArgumentBuilder<S, ?> curr = stack.pop();
+        // Connecting the brigadier tree (must be done backwards)
+        ArgumentBuilder<S, ?> curr = stack.pollLast();
         curr.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
         while (!stack.isEmpty()) {
             ArgumentBuilder<S, ?> prev = curr;
-            curr = stack.pop();
+            curr = stack.pollLast();
             curr.then(prev);
         }
 
         return (LiteralArgumentBuilder<S>) curr;
     }
 
-    private static TokenType categorize(String word) {
+    private static CommandPatternToken.Type categorize(String word) {
         if (word.equals("*")) {
-            return TokenType.WILDCARD;
+            return CommandPatternToken.Type.WILDCARD;
         }
         if ((word.startsWith("<") && word.endsWith(">")) || (word.startsWith("{") && word.endsWith("}"))) {
-            return word.length() > 2 ? TokenType.ARGUMENT : TokenType.UNNAMED_ARGUMENT;
+            return word.length() > 2 ? CommandPatternToken.Type.ARGUMENT : CommandPatternToken.Type.UNNAMED_ARGUMENT;
         }
-        return TokenType.LITERAL;
+        return CommandPatternToken.Type.LITERAL;
     }
     private static int valid(String word) {
         char[] chars = word.toCharArray();
@@ -205,10 +215,5 @@ class CommandParser<S> {
         }
 
         return -1;
-    }
-    private static String commandFromTokens(Token[] tokens) {
-        return Arrays.stream(tokens)
-                .map(Token::toString)
-                .collect(Collectors.joining(" "));
     }
 }

@@ -14,37 +14,41 @@ import java.util.function.Supplier;
 public class CollectionArgumentType<T, C extends Collection<T>> implements ArgumentType<C> {
 
 
-    public static <T, C extends Collection<T>> CollectionArgumentType<T, C> collectionOf(ArgumentType<T> wrapped, Supplier<C> supplier, int size) {
-        return new CollectionArgumentType<>(supplier, wrapped, size);
+    public static <T, C extends Collection<T>> CollectionArgumentType<T, C> collectionOf(Class<C> collectionTYpe, ArgumentType<T> wrapped, Supplier<C> supplier, int size) {
+        return new CollectionArgumentType<>(collectionTYpe, supplier, wrapped, size);
     }
-    public static <T, C extends Collection<T>> CollectionArgumentType<T, C> collectionOf(ArgumentType<T> wrapped, Supplier<C> supplier) {
-        return collectionOf(wrapped, supplier, -1);
+    public static <T, C extends Collection<T>> CollectionArgumentType<T, C> collectionOf(Class<C> collectionTYpe, ArgumentType<T> wrapped, Supplier<C> supplier) {
+        return collectionOf(collectionTYpe, wrapped, supplier, -1);
     }
-    public static <T> CollectionArgumentType<T, Collection<T>> collectionOf(ArgumentType<T> wrapped, int size) {
-        return collectionOf(wrapped, ArrayList::new, -1);
+    public static <T> CollectionArgumentType<T, ? extends Collection<T>> collectionOf(ArgumentType<T> wrapped, int size) {
+        return listOf(wrapped, size);
     }
-    public static <T> CollectionArgumentType<T, Collection<T>> collectionOf(ArgumentType<T> wrapped) {
-        return collectionOf(wrapped, -1);
+    public static <T> CollectionArgumentType<T, ? extends Collection<T>> collectionOf(ArgumentType<T> wrapped) {
+        return setOf(wrapped, -1);
     }
+    @SuppressWarnings("unchecked")
     public static <T> CollectionArgumentType<T, List<T>> listOf(ArgumentType<T> wrapped, int size) {
-        return collectionOf(wrapped, ArrayList::new, size);
+        return collectionOf((Class<List<T>>) (Class<?>) List.class, wrapped, ArrayList::new, size);
     }
     public static <T> CollectionArgumentType<T, List<T>> listOf(ArgumentType<T> wrapped) {
         return listOf(wrapped, -1);
     }
+    @SuppressWarnings("unchecked")
     public static <T> CollectionArgumentType<T, Set<T>> setOf(ArgumentType<T> wrapped, int size) {
-        return collectionOf(wrapped, HashSet::new, size);
+        return collectionOf((Class<Set<T>>) (Class<?>) Set.class, wrapped, HashSet::new, size);
     }
     public static <T> CollectionArgumentType<T, Set<T>> setOf(ArgumentType<T> wrapped) {
         return setOf(wrapped, -1);
     }
 
 
+    private final Class<C> collectionType_;
     private final Supplier<C> supplier_;
     private final ArgumentType<T> wrapped_;
     private final int size_;
 
-    private CollectionArgumentType(Supplier<C> supplier, ArgumentType<T> wrapped, int size) {
+    private CollectionArgumentType(Class<C> collectionType_, Supplier<C> supplier, ArgumentType<T> wrapped, int size) {
+        this.collectionType_ = collectionType_;
         this.supplier_ = supplier;
         this.wrapped_ = wrapped;
         this.size_ = size;
@@ -71,5 +75,9 @@ public class CollectionArgumentType<T, C extends Collection<T>> implements Argum
     @Override
     public Collection<String> getExamples() {
         return this.wrapped_.getExamples();
+    }
+
+    public Class<C> getCollectionType() {
+        return this.collectionType_;
     }
 }

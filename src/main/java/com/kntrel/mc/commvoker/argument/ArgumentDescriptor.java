@@ -8,16 +8,16 @@ import java.util.function.Predicate;
 public sealed interface ArgumentDescriptor<S> {
 
     // BUILDER
-    static <S, T> ArgumentDescriptor<S> of(ArgumentType<T> argumentType) {
+    static <S, T> ArgumentDescriptor.Parsed<S, T> of(ArgumentType<T> argumentType) {
         return new Parsed<>(argumentType, null);
     }
-    static <S, T> ArgumentDescriptor<S> of(ArgumentType<T> argumentType, Predicate<S> requirement) {
+    static <S, T> ArgumentDescriptor.Parsed<S, T> of(ArgumentType<T> argumentType, Predicate<S> requirement) {
         return new Parsed<>(argumentType, requirement);
     }
-    static <S, T> ArgumentDescriptor<S> of(VirtualArgumentType<S, T> argumentType) {
+    static <S, T> ArgumentDescriptor.Virtual<S, T> of(VirtualArgumentType<S, T> argumentType) {
         return new Virtual<>(argumentType, null);
     }
-    static <S, T> ArgumentDescriptor<S> of(VirtualArgumentType<S, T> argumentType, Predicate<S> requirement) {
+    static <S, T> ArgumentDescriptor.Virtual<S, T> of(VirtualArgumentType<S, T> argumentType, Predicate<S> requirement) {
         return new Virtual<>(argumentType, requirement);
     }
 

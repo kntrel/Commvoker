@@ -1,7 +1,9 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
-import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.bind.ArgumentBinder;
+import com.kntrel.mc.commvoker.builtin.ArgumentBindings;
+import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.mock.MockVirtual;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -66,11 +68,14 @@ public class CommandParserParseTest {
 
     private final CommandParser<?> parser;
 
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    
     public CommandParserParseTest() {
-        ArgumentTypeResolver<?> resolver = ArgumentTypeResolver.newDefault();
-        resolver.register(MockVirtual.class, Object.class, (VirtualArgumentType) (VirtualArgumentType<?, Object>) CommandContext::getSource);
+        ArgumentResolverImpl<Object> resolver = new ArgumentResolverImpl<>();
+        ArgumentBindings.all().forEach(resolver::register);
+        resolver.register(ArgumentBinder.virtual(() -> CommandContext::getSource)
+                .toAnnotation(MockVirtual.class)
+                .toClass(Object.class)
+                .bind());
         this.parser = new CommandParser<>(resolver);
     }
 
@@ -276,7 +281,7 @@ public class CommandParserParseTest {
         assertNotNull(ann);
         return ann;
     }
-    private CommandParser.Token[] assertValidTokens(String pattern) {
+    private CommandPatternToken[] assertValidTokens(String pattern) {
         return assertDoesNotThrow(() -> parser.tokenize(pattern));
     }
     private CommandNode<?> assertCommandMethod(String name, Class<?>... args) {

@@ -2,7 +2,8 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
 import com.kntrel.mc.commvoker.argument.ArgumentRegistry;
-import com.kntrel.mc.commvoker.argument.ArgumentResolver;
+import com.kntrel.mc.commvoker.builtin.ArgumentBindings;
+import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
@@ -14,7 +15,7 @@ import java.util.*;
 
 public abstract class BaseCommvoker<S> {
 
-    private final ArgumentResolver<S> argumentTypeResolver_;
+    private final ArgumentResolverImpl<S> argumentTypeResolver_;
     private final CommandParser<S> commandParser_;
     private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
@@ -26,7 +27,7 @@ public abstract class BaseCommvoker<S> {
         this.commandParser_ = new CommandParser<>(this.argumentTypeResolver_);
         this.instanceClasses_ = new HashSet<>();
 
-        this.defaultRegistrations().forEach(r -> this.getArgumentTypeRegistry().register(r));
+        ArgumentBindings.all().forEach(this.argumentTypeResolver_::register);
     }
 
 
@@ -42,14 +43,14 @@ public abstract class BaseCommvoker<S> {
 
         Command outerAnnotation = clazz.getAnnotation(Command.class);
         boolean nested = outerAnnotation != null;
-        CommandParser.Token[] outerTokens = new CommandParser.Token[0];
+        CommandPatternToken[] outerTokens = new CommandPatternToken[0];
 
         if (nested) try {
             if (outerAnnotation.value().isEmpty()) {
                 outerTokens = this.commandParser_.tokenize(Utils.toSnakeCase(clazz.getSimpleName()));
             } else {
                 outerTokens = this.commandParser_.tokenize(outerAnnotation.value());
-                if (outerTokens.length < 1 || !outerTokens[0].type().equals(CommandParser.TokenType.LITERAL)) {
+                if (outerTokens.length < 1 || !outerTokens[0].isLiteral()) {
                     outerTokens = Utils.arrayJoin(this.commandParser_.tokenize(Utils.toSnakeCase(clazz.getSimpleName())), outerTokens);
                 }
             }
@@ -60,19 +61,19 @@ public abstract class BaseCommvoker<S> {
         for (Method m : commandMethods) {
             Command annotation = m.getAnnotation(Command.class);
             String raw = annotation.value();
-            CommandParser.Token[] tokens;
+            CommandPatternToken[] tokens;
             try {
                 tokens = this.commandParser_.tokenize(raw);
             } catch (BadCommandTokenException e) {
                 throw new BadCommandClassException(src, e);
             }
-            if (tokens.length < 1 || !tokens[0].type().equals(CommandParser.TokenType.LITERAL)) {
+            if (tokens.length < 1 || !tokens[0].isLiteral()) {
                 if (annotation.extend() && !nested) {
                     throw new BadCommandClassException(src, new BadCommandMethodException(m, "'extend = true' command methods are only valid inside @Command annotated classes"));
                 }
                 if (!annotation.extend()) {
                     tokens = Utils.arrayJoin(
-                            new CommandParser.Token[] { new CommandParser.Token(Utils.toSnakeCase(m.getName()), CommandParser.TokenType.LITERAL) },
+                            new CommandPatternToken[] { CommandPatternToken.literal(Utils.toSnakeCase(m.getName())) },
                             tokens
                     );
                 }
@@ -104,10 +105,6 @@ public abstract class BaseCommvoker<S> {
 
     public ArgumentRegistry<S> getArgumentTypeRegistry() {
         return this.argumentTypeResolver_;
-    }
-
-    protected Iterable<ArgumentTypeRegistration<S, ?>> defaultRegistrations() {
-        return List.of();
     }
 
     protected CommandDispatcher<S> getCommandDispatcher() {

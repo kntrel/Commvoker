@@ -4,8 +4,8 @@ import com.kntrel.mc.commvoker.annotation.Word;
 import com.kntrel.mc.commvoker.argument.bind.UndefinedArgumentBinding;
 import com.kntrel.mc.commvoker.builtin.argumentType.CollectionArgumentType;
 import com.kntrel.mc.commvoker.exception.ArgumentResolutionException;
+import com.kntrel.util.Constants;
 import com.mojang.brigadier.arguments.*;
-
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -27,7 +27,6 @@ public final class ArgumentBindings {
         }
         return Integer.class;
     }
-
 
     private ArgumentBindings() {}
 
@@ -51,11 +50,11 @@ public final class ArgumentBindings {
         BOOLEAN = argument(BoolArgumentType::bool)
                 .toClass(Boolean.class)
                 .bind(),
-        PRIMITIVE = compose(g -> g.resolveType(boxed((Class<?>) g.getContext().type())))
+        PRIMITIVE = compose(g -> g.resolveType(boxed((Class<?>) g.type())))
                 .toCondition(ctx -> ctx.type() instanceof Class<?> c && PRIMITIVES.contains(c))
                 .bind(),
         LIST = compose(g -> {
-                    Type type = g.getContext().type();
+                    Type type = g.type();
                     if (!(type instanceof ParameterizedType parameterizedType)) {
                         throw new ArgumentResolutionException();
                     }
@@ -65,7 +64,7 @@ public final class ArgumentBindings {
                 .toClass((Class) List.class)
                 .bind(),
         SET = compose(g -> {
-                Type type = g.getContext().type();
+                Type type = g.type();
                 if (!(type instanceof ParameterizedType parameterizedType)) {
                     throw new ArgumentResolutionException();
                 }
@@ -76,4 +75,8 @@ public final class ArgumentBindings {
                     .bind();
 
 
+    @SuppressWarnings("unchecked")
+    public static Collection<UndefinedArgumentBinding<?>> all() {
+        return Constants.getAll(ArgumentBindings.class, (Class<UndefinedArgumentBinding<?>>) (Class<?>) UndefinedArgumentBinding.class);
+    }
 }

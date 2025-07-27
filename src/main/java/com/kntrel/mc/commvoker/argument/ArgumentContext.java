@@ -1,22 +1,25 @@
 package com.kntrel.mc.commvoker.argument;
 
 import com.kntrel.mc.commvoker.command.CommandDefinition;
+import com.kntrel.mc.commvoker.command.CommandPattern;
+import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.command.CommandToken;
-import java.lang.annotation.Annotation;
+import com.mojang.brigadier.arguments.ArgumentType;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
-public class ArgumentContext {
+public class ArgumentContext extends ParameterContext {
 
     //FIELDS
-    private final Parameter parameter_;
-    private final Type type_;
-    private final Method method_;
-    private final int parameterIndex_;
     private final CommandDefinition command_;
     private final int commandTokenIndex_;
+    private final ArgumentType<?>[] previous_;
 
 
     //CONSTRUCTORS
@@ -26,68 +29,72 @@ public class ArgumentContext {
             Method method,
             int parameterIndex,
             CommandDefinition command,
-            int commandTokenIndex
+            int commandTokenIndex,
+            ArgumentType<?>[] previous_
     ) {
-        if (parameterIndex < 0) {
-            throw new IndexOutOfBoundsException(parameterIndex);
-        }
+        super(parameter, type, method, parameterIndex);
+
         if (commandTokenIndex < 0) {
             throw new IndexOutOfBoundsException(commandTokenIndex);
-        }
-        if (parameterIndex >= method.getParameterCount()) {
-            throw new IndexOutOfBoundsException(parameterIndex);
         }
         if (commandTokenIndex >= command.size()) {
             throw new IndexOutOfBoundsException(commandTokenIndex);
         }
 
-        this.parameter_ = Objects.requireNonNull(parameter, "parameter");
-        this.type_ = Objects.requireNonNull(type);
-        this.method_ = Objects.requireNonNull(method, "method");
-        this.parameterIndex_ = parameterIndex;
         this.command_ = Objects.requireNonNull(command, "command");
         this.commandTokenIndex_ = commandTokenIndex;
+        this.previous_ = previous_;
     }
     public ArgumentContext(ArgumentContext other) {
-        this(other.parameter_, other.type_, other.method_, other.parameterIndex_, other.command_, other.commandTokenIndex_);
+        super(other);
+        this.command_ = other.command_;
+        this.commandTokenIndex_ = other.commandTokenIndex_;
+        this.previous_ = other.previous_;
     }
 
 
     //GETTERS
-    public Parameter parameter() { return this.parameter_; }
-    public Type type() { return this.type_; }
-    public Method method() { return this.method_; }
-    public int parameterIndex() { return this.parameterIndex_; }
     public CommandDefinition command() { return this.command_; }
     public int commandTokenIndex() { return this.commandTokenIndex_; }
-
-
-    //UTILITY
-    public <A extends Annotation> A getAnnotation(Class<A> annotation) {
-        return this.parameter_.getAnnotation(annotation);
-    }
-    public boolean isAnnotationPresent(Class<? extends Annotation> annotation) {
-        return this.parameter_.isAnnotationPresent(annotation);
-    }
     public CommandToken commandToken() {
         return this.command_.getTokenAt(this.commandTokenIndex_);
     }
-
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null) { return false; }
-        if (this == o) { return true; }
-        if (!(o instanceof ArgumentContext other)) { return false; }
-        return     parameterIndex_ == other.parameterIndex_
-                && commandTokenIndex_ == other.commandTokenIndex_
-                && parameter_.equals(other.parameter_)
-                && method_.equals(other.method_)
-                && command_.equals(other.command_);
+    public ArgumentType<?>[] previousTypes() {
+        return Arrays.copyOf(this.previous_, this.previous_.length);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(parameter_, method_, parameterIndex_, command_, commandTokenIndex_);
+
+    //UTILITY
+    public int previousCount() {
+        return this.previous_.length;
+
+    }
+    public ArgumentType<?> previousType(int offset) {
+        if (offset >= this.previous_.length) {
+            throw new IndexOutOfBoundsException(offset);
+        }
+        return this.previous_[this.previous_.length - offset - 1];
+    }
+    public Optional<ArgumentType<?>> previousType() {
+        if (this.previous_ == null || this.previous_.length < 1) {
+            return Optional.empty();
+        }
+        return Optional.of(this.previousType(0));
+    }
+    public boolean hasPrevious() {
+        return this.previous_.length > 0;
+    }
+
+
+    //IMPLEMENTATION
+    @Override public boolean equals(Object o) {
+        if (!super.equals(o)) { return false; }
+        if (!(o instanceof ArgumentContext other)) { return false; }
+        return     this.commandTokenIndex_ == other.commandTokenIndex_
+                && this.command_.equals(other.command_);
+    }
+
+    @Override public int hashCode() {
+        return super.hashCode() + Objects.hash(this.command_, this.commandTokenIndex_);
     }
 }

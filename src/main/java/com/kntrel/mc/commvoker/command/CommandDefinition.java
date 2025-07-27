@@ -13,7 +13,7 @@ public class CommandDefinition implements Iterable<CommandToken> {
         if (tokens.length < 1) {
             throw new IllegalArgumentException("Empty tokens array is illegal");
         }
-        this.tokens_ = tokens;
+        this.tokens_ = Arrays.copyOf(tokens, tokens.length);
     }
     public CommandDefinition(Collection<CommandToken> tokens) {
         this(tokens.toArray(new CommandToken[0]));
@@ -22,9 +22,6 @@ public class CommandDefinition implements Iterable<CommandToken> {
 
     public int size() {
         return this.tokens_.length;
-    }
-    public boolean isEmpty() {
-        return this.tokens_.length < 1;
     }
     public CommandToken getTokenAt(int index) {
         return this.tokens_[index];

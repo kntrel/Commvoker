@@ -1,5 +1,7 @@
 package com.kntrel.util;
 
+import java.util.Comparator;
+
 public class Priority implements Comparable<Priority> {
 
     //HANDY CONSTANTS
@@ -63,7 +65,7 @@ public class Priority implements Comparable<Priority> {
 
     //UTIL
     @Override public int compareTo(Priority o) {
-        return Integer.compare(this.val_, o.val_);
+        return Integer.compare(o.val_, this.val_);
     }
     @Override public boolean equals(Object o) {
         if (o == null) { return false; }
