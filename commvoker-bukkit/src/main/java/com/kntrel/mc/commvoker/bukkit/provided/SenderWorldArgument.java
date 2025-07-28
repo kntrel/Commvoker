@@ -1,21 +1,21 @@
 package com.kntrel.mc.commvoker.bukkit.provided;
 
-import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class WorldVirtualArgumentType implements VirtualArgumentType<CommandSender, World> {
+public class SenderWorldArgument implements ImplicitArgumentType<CommandSender, World> {
 
-    private static final WorldVirtualArgumentType INSTANCE = new WorldVirtualArgumentType();
+    private static final SenderWorldArgument INSTANCE = new SenderWorldArgument();
 
-    public static WorldVirtualArgumentType senderWorld() {
+    public static SenderWorldArgument senderWorld() {
         return INSTANCE;
     }
 
 
-    private WorldVirtualArgumentType() {}
+    private SenderWorldArgument() {}
 
     @Override
     public World parse(CommandContext<CommandSender> ctx) {
