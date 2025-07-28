@@ -4,16 +4,21 @@ import com.kntrel.mc.commvoker.annotation.Word;
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.bind.ArgumentBinder;
 import com.kntrel.mc.commvoker.argument.bind.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.type.ContextualArgumentType;
 import com.kntrel.mc.commvoker.builtin.ArgumentBindings;
 import com.kntrel.mc.commvoker.builtin.argumentType.CollectionArgumentType;
 import com.kntrel.mc.commvoker.command.CommandDefinition;
 import com.kntrel.mc.commvoker.command.CommandToken;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.Priority;
+import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -81,13 +86,11 @@ class ArgumentResolverImplTest {
                 .getDeclaredMethod("dummy",
                         String.class, String.class, int.class, Integer.class,
                         double.class, List.class, Set.class, String.class);
+    }
 
-        // Register *all* default bindings
-        resolver.register(ArgumentBindings.STRING);
-        resolver.register(ArgumentBindings.INTEGER, ArgumentBindings.LONG,
-                ArgumentBindings.DOUBLE, ArgumentBindings.BOOLEAN,
-                ArgumentBindings.PRIMITIVE,
-                ArgumentBindings.LIST, ArgumentBindings.SET);
+    @BeforeEach
+    public void init() {
+        ArgumentBindings.all().forEach(this.resolver::register);
     }
 
     @Test

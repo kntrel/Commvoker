@@ -2,7 +2,8 @@ package com.kntrel.mc.commvoker.argument.bind;
 
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ParameterContext;
-import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.ContextualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
 import com.kntrel.util.Priority;
 import com.mojang.brigadier.arguments.ArgumentType;
 import java.lang.annotation.Annotation;
@@ -15,18 +16,28 @@ public class ArgumentBinder<T> {
     public static <T> ArgumentBinder.Undefined<T> argument(Function<ArgumentContext, ArgumentType<T>> fetcher) {
         return new ArgumentBinder.Undefined<>(fetcher, null);
     }
-    public static <S, T> ArgumentBinder.Virtual<S, T> virtual(Function<ParameterContext, VirtualArgumentType<S, T>> fetcher) {
-        return new ArgumentBinder.Virtual<>(fetcher);
+    public static <S, T> Implicit<S, T> implicit(Function<ParameterContext, ImplicitArgumentType<S, T>> fetcher) {
+        return new Implicit<>(fetcher);
+    }
+    public static <S, I, T> ArgumentBinder.Defined<S, T> contextual(Function<ArgumentContext, ContextualArgumentType<S, ?, T>> fetcher) {
+        return new Defined<>(null, null, fetcher, null);
     }
     public static <T> ArgumentBinder.Undefined<T> argument(Supplier<ArgumentType<T>> fetcher) {
-        return new ArgumentBinder.Undefined<>(ctx -> fetcher.get(), null);
+        return argument(ctx -> fetcher.get());
     }
-    public static <S, T> ArgumentBinder.Virtual<S, T> virtual(Supplier<VirtualArgumentType<S, T>> fetcher) {
-        return new ArgumentBinder.Virtual<>(ctx -> fetcher.get());
+    public static <S, T> Implicit<S, T> implicit(Supplier<ImplicitArgumentType<S, T>> fetcher) {
+        return implicit(ctx -> fetcher.get());
+    }
+    public static <S, T> ArgumentBinder.Defined<S, T> contextual(Supplier<ContextualArgumentType<S, ?, T>> fetcher) {
+        return contextual(ctx -> fetcher.get());
     }
     public static <T> ArgumentBinder.Undefined<T> compose(Function<ArgumentGatherer<?>, ArgumentType<T>> fetcher) {
         return new ArgumentBinder.Undefined<>(null, fetcher);
     }
+    public static <S, T> ArgumentBinder.Defined<S, T> composeContextual(Function<ArgumentGatherer<S>, ContextualArgumentType<S, ?, T>> fetcher) {
+        return new ArgumentBinder.Defined<>(null, null, null, fetcher);
+    }
+
 
 
 
@@ -86,8 +97,8 @@ public class ArgumentBinder<T> {
         @SuppressWarnings({ "unchecked", "rawtypes" })
         public <S> ArgumentBinder.Defined<S, T> requires(Predicate<S> requirement) {
             ArgumentBinder.Defined<S, T> delegate = (this.typeSupplier_ != null)
-                ? new Defined<>(this, (Function) this.typeSupplier_, null)
-                : new Defined<>(this, null, (Function) this.composeSupplier_);
+                ? new Defined<>(this, (Function) this.typeSupplier_, null, null, null)
+                : new Defined<>(this, null, (Function) this.composeSupplier_, null, null);
 
             delegate.requires(requirement);
             return delegate;
@@ -112,24 +123,34 @@ public class ArgumentBinder<T> {
 
         private final Function<ArgumentContext, ArgumentType<T>> typeSupplier_;
         private final Function<ArgumentGatherer<S>, ArgumentType<T>> composeSupplier_;
+        private final Function<ArgumentContext, ContextualArgumentType<S, ?, T>> contextualSupplier_;
+        private final Function<ArgumentGatherer<S>, ContextualArgumentType<S, ?, T>> composeContextualSupplier_;
         private Predicate<S> requirement;
 
 
         private Defined(
                 Function<ArgumentContext, ArgumentType<T>> typeSupplier,
-                Function<ArgumentGatherer<S>, ArgumentType<T>> composeSupplier
+                Function<ArgumentGatherer<S>, ArgumentType<T>> composeSupplier,
+                Function<ArgumentContext, ContextualArgumentType<S, ?, T>> contextualSupplier,
+                Function<ArgumentGatherer<S>, ContextualArgumentType<S, ?, T>> composeContextualSupplier
         ) {
             this.typeSupplier_ = typeSupplier;
             this.composeSupplier_ = composeSupplier;
+            this.contextualSupplier_ = contextualSupplier;
+            this.composeContextualSupplier_ = composeContextualSupplier;
         }
         private Defined(
                 Base<ArgumentContext, T, ?, ?> o,
                 Function<ArgumentContext, ArgumentType<T>> typeSupplier,
-                Function<ArgumentGatherer<S>, ArgumentType<T>> composeSupplier
+                Function<ArgumentGatherer<S>, ArgumentType<T>> composeSupplier,
+                Function<ArgumentContext, ContextualArgumentType<S, ?, T>> contextualSupplier,
+                Function<ArgumentGatherer<S>, ContextualArgumentType<S, ?, T>> composeContextualSupplier
         ) {
             super(o);
             this.typeSupplier_ = typeSupplier;
             this.composeSupplier_ = composeSupplier;
+            this.contextualSupplier_ = contextualSupplier;
+            this.composeContextualSupplier_ = composeContextualSupplier;
         }
 
         public ArgumentBinder.Defined<S, T> requires(Predicate<S> requirement) {
@@ -147,33 +168,46 @@ public class ArgumentBinder<T> {
                 );
             }
 
-            return new ArgumentBinding.Composed<>(
-                    this.composeSupplier_, this.type, this.annotation, this.condition, this.requirement, priority
+            if (this.composeSupplier_ != null) {
+                return new ArgumentBinding.Composed<>(
+                        this.composeSupplier_, this.type, this.annotation, this.condition, this.requirement, priority
+                );
+            }
+
+            if (this.contextualSupplier_ != null) {
+                return new ArgumentBinding.Contextual<>(
+                        (Function) this.contextualSupplier_, this.type, this.annotation, this.condition, this.requirement, priority
+                );
+            }
+
+            return new ArgumentBinding.ComposedContextual<>(
+                    (Function) this.composeContextualSupplier_, this.type, this.annotation, this.condition, this.requirement, priority
             );
         }
     }
 
-    public static class Virtual<S, T> extends Base<ParameterContext, T, VirtualArgumentBinding<S, T>, Virtual<S, T>> {
 
-        private final Function<ParameterContext, VirtualArgumentType<S, T>> virtualSupplier_;
+    public static class Implicit<S, T> extends Base<ParameterContext, T, ImplicitArgumentBinding<S, T>, Implicit<S, T>> {
+
+        private final Function<ParameterContext, ImplicitArgumentType<S, T>> virtualSupplier_;
         private Predicate<S> requirement;
 
 
-        private Virtual(
-                Function<ParameterContext, VirtualArgumentType<S, T>> virtualSupplier
+        private Implicit(
+                Function<ParameterContext, ImplicitArgumentType<S, T>> virtualSupplier
         ) {
             this.virtualSupplier_ = virtualSupplier;
         }
 
-        public ArgumentBinder.Virtual<S, T> requires(Predicate<S> requirement) {
+        public Implicit<S, T> requires(Predicate<S> requirement) {
             this.requirement = requirement;
             return this;
         }
 
-        @Override public VirtualArgumentBinding<S, T> bind() {
+        @Override public ImplicitArgumentBinding<S, T> bind() {
             Priority priority = (this.priority == null) ? Priority.NORMAL : this.priority;
 
-            return new ArgumentBinding.Virtual<>(
+            return new ArgumentBinding.Implicit<>(
                     this.virtualSupplier_, this.type, this.annotation, this.condition, this.requirement, priority
             );
         }

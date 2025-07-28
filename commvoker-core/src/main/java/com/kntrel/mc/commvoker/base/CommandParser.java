@@ -111,7 +111,7 @@ class CommandParser<S> {
             Parameter param = params[i];
             ParameterContext ctx = new ParameterContext(param, param.getParameterizedType(), method, i);
             try {
-                ArgumentDescriptor.Virtual<S, ?> desc = this.argumentResolver_.resolveVirtual(ctx);
+                ArgumentDescriptor.Implicit<S, ?> desc = this.argumentResolver_.resolveImplicit(ctx);
                 argumentParsers[i] = ArgumentParser.of(desc.argumentType());
                 Predicate<S> req = desc.requirement();
                 if (req != null) { requirements.add(req); }
@@ -170,14 +170,25 @@ class CommandParser<S> {
             ParamInfo paramInfo = paramTokens.get(i);
             Parameter param = paramInfo.param();
             ArgumentContext ctx = new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, resolvedTypes.toArray(new ArgumentType[0]));
-            ArgumentDescriptor.Parsed<S, ?> desc = this.argumentResolver_.resolve(ctx);
-            ArgumentType<?> argType = desc.argumentType();;
+            ArgumentDescriptor<S> desc = this.argumentResolver_.resolve(ctx);
+            ArgumentType<?> argType = (ArgumentType<?>) desc.argumentType();
+
+            switch (desc) {
+                case ArgumentDescriptor.Parsed<S, ?> p -> {
+                    argType = p.argumentType();
+                    argumentParsers[paramInfo.index()] = ArgumentParser.of(t.label(), param.getType());
+                }
+                case ArgumentDescriptor.Contextual<S, ?, ?> c -> {
+                    argType = c.argumentType();
+                    argumentParsers[paramInfo.index()] = ArgumentParser.of(t.label(), c.argumentType());
+                }
+                case ArgumentDescriptor.Implicit<S, ?> imp -> argType = null;       // Can't happen.
+            }
 
             RequiredArgumentBuilder<S, ?> arg = RequiredArgumentBuilder.argument(t.label(), argType);
             if (desc.requirement() != null) { arg.requires(desc.requirement()); }
             stack.add(arg);
             resolvedTypes.add(argType);
-            argumentParsers[paramInfo.index()] = ArgumentParser.of(t.label(), param.getType());
         }
 
         // Connecting the brigadier tree (must be done backwards)

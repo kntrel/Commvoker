@@ -24,15 +24,15 @@ public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentReso
         this.gathered_ = new LinkedHashSet<>();
     }
 
-    @Override public ArgumentDescriptor.Parsed<S, ?> resolve(ArgumentContext ctx) {
-        ArgumentDescriptor.Parsed<S, ?> result = this.argumentResolver_.resolve(ctx);
+    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
+        ArgumentDescriptor<S> result = this.argumentResolver_.resolve(ctx);
         this.gathered_.add(result);
         return result;
     }
 
     @Override
-    public ArgumentDescriptor.Virtual<S, ?> resolveVirtual(ParameterContext ctx) {
-        return this.argumentResolver_.resolveVirtual(ctx);
+    public ArgumentDescriptor.Implicit<S, ?> resolveImplicit(ParameterContext ctx) {
+        return this.argumentResolver_.resolveImplicit(ctx);
     }
 
     public ArgumentType<?> resolveType(Type type) {
@@ -57,7 +57,7 @@ public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentReso
                 throw new NoSuchArgumentBindingException(this);
             }
             next = binding.descriptor(this);
-        } while (next instanceof ArgumentDescriptor.Virtual<S,?>);
+        } while (next instanceof ArgumentDescriptor.Implicit<S,?>);
         this.gathered_.add(next);
         return next.eitherType().getTheOne();
     }
