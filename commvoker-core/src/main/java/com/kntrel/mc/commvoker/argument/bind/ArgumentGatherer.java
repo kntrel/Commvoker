@@ -24,8 +24,8 @@ public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentReso
         this.gathered_ = new LinkedHashSet<>();
     }
 
-    @Override public ArgumentDescriptor.Parsed<S, ?> resolve(ArgumentContext ctx) {
-        ArgumentDescriptor.Parsed<S, ?> result = this.argumentResolver_.resolve(ctx);
+    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
+        ArgumentDescriptor<S> result = this.argumentResolver_.resolve(ctx);
         this.gathered_.add(result);
         return result;
     }

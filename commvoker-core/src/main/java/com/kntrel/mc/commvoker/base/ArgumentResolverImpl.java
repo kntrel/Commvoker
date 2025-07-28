@@ -102,7 +102,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
         this.virtualArgumentRegistry_.register(binding);
     }
 
-    @Override public ArgumentDescriptor.Parsed<S, ?> resolve(ArgumentContext ctx) {
+    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
         PriorityQueue<ArgumentBinding<S, ?>> matches = this.argumentRegistry_.resolve(ctx);
         ArgumentBinding<S, ?> binding = matches.poll();
         if (binding == null) {

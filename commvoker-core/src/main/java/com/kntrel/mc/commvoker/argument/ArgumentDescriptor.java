@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.argument;
 
+import com.kntrel.mc.commvoker.argument.type.ContextualArgumentType;
 import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
 import com.kntrel.util.Either;
 import com.mojang.brigadier.arguments.ArgumentType;
@@ -14,6 +15,12 @@ public sealed interface ArgumentDescriptor<S> {
     static <S, T> ArgumentDescriptor.Parsed<S, T> of(ArgumentType<T> argumentType, Predicate<S> requirement) {
         return new Parsed<>(argumentType, requirement);
     }
+    static <S, I, T> ArgumentDescriptor.Contextual<S, I, T> ofContextual(ContextualArgumentType<S, I, T> argumentType) {
+        return new Contextual<>(argumentType, null);
+    }
+    static <S, I, T> ArgumentDescriptor.Contextual<S, I, T> ofContextual(ContextualArgumentType<S, I, T> argumentType, Predicate<S> requirement) {
+        return new Contextual<>(argumentType, requirement);
+    }
     static <S, T> Implicit<S, T> of(ImplicitArgumentType<S, T> argumentType) {
         return new Implicit<>(argumentType, null);
     }
@@ -27,7 +34,8 @@ public sealed interface ArgumentDescriptor<S> {
     Predicate<S> requirement();
     default Either<ArgumentType<?>, ImplicitArgumentType<S, ?>> eitherType() {
         return switch (this) {
-            case Parsed<S, ?> p -> Either.ofTheOne(p.argumentType());
+            case ArgumentDescriptor.Parsed<S, ?> p -> Either.ofTheOne(p.argumentType());
+            case ArgumentDescriptor.Contextual<S, ?, ?> p -> Either.ofTheOne(p.argumentType());
             case ArgumentDescriptor.Implicit<S, ?> p -> Either.ofTheOther(p.argumentType());
         };
     }
@@ -36,4 +44,5 @@ public sealed interface ArgumentDescriptor<S> {
     // IMPLEMENTATIONS
     record Parsed<S, T>(ArgumentType<T> argumentType, Predicate<S> requirement) implements ArgumentDescriptor<S> {}
     record Implicit<S, T>(ImplicitArgumentType<S, T> argumentType, Predicate<S> requirement) implements ArgumentDescriptor<S> {}
+    record Contextual<S, I, T>(ContextualArgumentType<S, I, T> argumentType, Predicate<S> requirement) implements ArgumentDescriptor<S> {}
 }
