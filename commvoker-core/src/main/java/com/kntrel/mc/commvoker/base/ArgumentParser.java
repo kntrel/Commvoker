@@ -1,11 +1,11 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
 interface ArgumentParser<S, T> {
 
-    static <S, T> ArgumentParser<S, T> of(VirtualArgumentType<S, T> virtual) {
+    static <S, T> ArgumentParser<S, T> of(ImplicitArgumentType<S, T> virtual) {
         return new Virtual<>(virtual);
     }
     static <S, T> ArgumentParser<S, T> of(String name, Class<T> type) {
@@ -16,10 +16,10 @@ interface ArgumentParser<S, T> {
 
     class Virtual<S, T> implements ArgumentParser<S, T> {
 
-        private final VirtualArgumentType<S, T> argumentType_;
+        private final ImplicitArgumentType<S, T> argumentType_;
 
-        private Virtual(VirtualArgumentType<S, T> virtualArgumentType) {
-            this.argumentType_ = virtualArgumentType;
+        private Virtual(ImplicitArgumentType<S, T> implicitArgumentType) {
+            this.argumentType_ = implicitArgumentType;
         }
 
         @Override public T parse(CommandContext<S> ctx) {

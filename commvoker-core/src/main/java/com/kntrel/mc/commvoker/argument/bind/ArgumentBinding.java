@@ -3,7 +3,7 @@ package com.kntrel.mc.commvoker.argument.bind;
 import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ParameterContext;
-import com.kntrel.mc.commvoker.argument.type.VirtualArgumentType;
+import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
 import com.kntrel.util.Multipredicate;
 import com.kntrel.util.Priority;
 import com.mojang.brigadier.arguments.ArgumentType;
@@ -36,20 +36,20 @@ public interface ArgumentBinding<S, T> extends SimpleArgumentBinding<ArgumentCon
         }
     }
 
-    record Virtual<S, T>(
-            Function<ParameterContext, VirtualArgumentType<S, T>> supplier,
+    record Implicit<S, T>(
+            Function<ParameterContext, ImplicitArgumentType<S, T>> supplier,
             Class<T> toClass,
             Class<? extends Annotation> toAnnotation,
             Predicate<ParameterContext> toCondition,
             Predicate<S> requirement,
             Priority priority
-     ) implements VirtualArgumentBinding<S, T>, Function<ParameterContext, VirtualArgumentType<S, T>> {
+     ) implements ImplicitArgumentBinding<S, T>, Function<ParameterContext, ImplicitArgumentType<S, T>> {
 
-        @Override public VirtualArgumentType<S, T> apply(ParameterContext ctx) {
+        @Override public ImplicitArgumentType<S, T> apply(ParameterContext ctx) {
             return this.supplier.apply(ctx);
         }
         @Override
-        public ArgumentDescriptor.Virtual<S, T> descriptor(ParameterContext ctx) {
+        public ArgumentDescriptor.Implicit<S, T> descriptor(ParameterContext ctx) {
             return ArgumentDescriptor.of(this.apply(ctx), this.requirement);
         }
     }

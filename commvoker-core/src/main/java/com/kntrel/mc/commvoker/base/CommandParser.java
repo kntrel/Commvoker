@@ -111,7 +111,7 @@ class CommandParser<S> {
             Parameter param = params[i];
             ParameterContext ctx = new ParameterContext(param, param.getParameterizedType(), method, i);
             try {
-                ArgumentDescriptor.Virtual<S, ?> desc = this.argumentResolver_.resolveVirtual(ctx);
+                ArgumentDescriptor.Implicit<S, ?> desc = this.argumentResolver_.resolveImplicit(ctx);
                 argumentParsers[i] = ArgumentParser.of(desc.argumentType());
                 Predicate<S> req = desc.requirement();
                 if (req != null) { requirements.add(req); }
