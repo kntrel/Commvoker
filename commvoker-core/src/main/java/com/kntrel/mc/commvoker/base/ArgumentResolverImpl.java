@@ -4,7 +4,7 @@ import com.kntrel.mc.commvoker.argument.*;
 import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.bind.ArgumentGatherer;
 import com.kntrel.mc.commvoker.argument.bind.SimpleArgumentBinding;
-import com.kntrel.mc.commvoker.argument.bind.VirtualArgumentBinding;
+import com.kntrel.mc.commvoker.argument.bind.ImplicitArgumentBinding;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.SetMap;
 import java.lang.annotation.Annotation;
@@ -85,7 +85,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
 
 
     private final Registry<ArgumentContext, ArgumentBinding<S, ?>> argumentRegistry_;
-    private final Registry<ParameterContext, VirtualArgumentBinding<S, ?>> virtualArgumentRegistry_;
+    private final Registry<ParameterContext, ImplicitArgumentBinding<S, ?>> virtualArgumentRegistry_;
 
 
     ArgumentResolverImpl() {
@@ -98,11 +98,11 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
         this.argumentRegistry_.register(binding);
     }
 
-    @Override public void register(VirtualArgumentBinding<S, ?> binding) {
+    @Override public void register(ImplicitArgumentBinding<S, ?> binding) {
         this.virtualArgumentRegistry_.register(binding);
     }
 
-    @Override public ArgumentDescriptor.Parsed<S, ?> resolve(ArgumentContext ctx) {
+    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
         PriorityQueue<ArgumentBinding<S, ?>> matches = this.argumentRegistry_.resolve(ctx);
         ArgumentBinding<S, ?> binding = matches.poll();
         if (binding == null) {
@@ -112,9 +112,9 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
         return binding.descriptor(resolutionContext);
     }
 
-    @Override public ArgumentDescriptor.Virtual<S, ?> resolveVirtual(ParameterContext ctx) {
-        PriorityQueue<VirtualArgumentBinding<S, ?>> matches = this.virtualArgumentRegistry_.resolve(ctx);
-        VirtualArgumentBinding<S, ?> binding = matches.poll();
+    @Override public ArgumentDescriptor.Implicit<S, ?> resolveImplicit(ParameterContext ctx) {
+        PriorityQueue<ImplicitArgumentBinding<S, ?>> matches = this.virtualArgumentRegistry_.resolve(ctx);
+        ImplicitArgumentBinding<S, ?> binding = matches.poll();
         if (binding == null) {
             throw new NoSuchArgumentBindingException(ctx);
         }

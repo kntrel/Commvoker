@@ -5,7 +5,7 @@ import com.kntrel.mc.commvoker.argument.bind.ArgumentBinder;
 import com.kntrel.mc.commvoker.builtin.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
-import com.kntrel.mc.commvoker.mock.MockVirtual;
+import com.kntrel.mc.commvoker.mock.MockImplicit;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.CommandNode;
@@ -62,7 +62,7 @@ public class CommandParserParseTest {
     void test10(String a, String b, String c, String d) {}
 
     @Command("test11 * foo bar")
-    void test11(@MockVirtual Object src, String a, String b, String c, String d) {}
+    void test11(@MockImplicit Object src, String a, String b, String c, String d) {}
 
     /* -----------------------------------------------*/
 
@@ -72,8 +72,8 @@ public class CommandParserParseTest {
     public CommandParserParseTest() {
         ArgumentResolverImpl<Object> resolver = new ArgumentResolverImpl<>();
         ArgumentBindings.all().forEach(resolver::register);
-        resolver.register(ArgumentBinder.virtual(() -> CommandContext::getSource)
-                .toAnnotation(MockVirtual.class)
+        resolver.register(ArgumentBinder.implicit(() -> CommandContext::getSource)
+                .toAnnotation(MockImplicit.class)
                 .toClass(Object.class)
                 .bind());
         this.parser = new CommandParser<>(resolver);

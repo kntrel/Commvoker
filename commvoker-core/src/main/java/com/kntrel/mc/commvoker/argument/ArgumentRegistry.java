@@ -2,7 +2,7 @@ package com.kntrel.mc.commvoker.argument;
 
 import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.bind.UndefinedArgumentBinding;
-import com.kntrel.mc.commvoker.argument.bind.VirtualArgumentBinding;
+import com.kntrel.mc.commvoker.argument.bind.ImplicitArgumentBinding;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,7 +11,7 @@ public interface ArgumentRegistry<S> {
 
     void register(ArgumentBinding<S, ?> binding);
 
-    void register(VirtualArgumentBinding<S, ?> binding);
+    void register(ImplicitArgumentBinding<S, ?> binding);
 
     default void register(ArgumentBinding<S, ?>... bindings) {
         Arrays.stream(bindings).forEach(this::register);
