@@ -3,14 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>com.kntrel</groupId>
         <artifactId>commvoker</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>commvoker-core</artifactId>
+    <artifactId>commvoker-spigot</artifactId>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -20,16 +19,24 @@
 
     <repositories>
         <repository>
-            <id>minecraft-repo</id>
-            <url>https://libraries.minecraft.net/</url>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
         </repository>
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>com.mojang</groupId>
-            <artifactId>brigadier</artifactId>
-            <version>1.0.18</version>
+            <groupId>com.kntrel</groupId>
+            <artifactId>commvoker-bukkit</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot</artifactId>
+            <version>1.21.8-R0.1-SNAPSHOT</version>
+            <classifier>remapped-mojang</classifier>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
