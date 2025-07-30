@@ -1,4 +1,4 @@
-package com.kntrel.commvoker.spigot;
+package com.kntrel.mc.commvoker.spigot;
 
 import com.mojang.brigadier.*;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
