@@ -4,9 +4,8 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import java.util.Collections;
 
-public class BukkitCommand extends Command {
+class BukkitCommand extends Command {
 
     private final CommandDispatcher<CommandSender> delegate_;
 
