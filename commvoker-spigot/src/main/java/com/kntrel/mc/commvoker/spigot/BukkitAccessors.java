@@ -12,14 +12,16 @@ class BukkitAccessors {
     private BukkitAccessors() {}
 
 
-    static CommandDispatcher<CommandSourceStack> commandDispatcher(Server server) {
-        MinecraftServer ms;
+    static MinecraftServer minecraftServer(Server server) {
         try {
-            ms = (MinecraftServer) server.getClass().getMethod("getServer").invoke(server);
+            return  (MinecraftServer) server.getClass().getMethod("getServer").invoke(server);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
-        return ms.getCommands().getDispatcher();
+    }
+
+    static CommandDispatcher<CommandSourceStack> commandDispatcher(Server server) {
+        return minecraftServer(server).getCommands().getDispatcher();
     }
 
     static CommandMap commandMap(Server server) {
