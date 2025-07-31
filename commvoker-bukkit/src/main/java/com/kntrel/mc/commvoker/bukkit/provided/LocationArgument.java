@@ -19,7 +19,9 @@ import java.util.concurrent.CompletableFuture;
 
 public class LocationArgument implements ContextualArgumentType<CommandSender, Coordinates, Location> {
 
-
+    public static LocationArgument location() {
+        return new LocationArgument(Vec3Argument.vec3());
+    }
 
 
     private final Vec3Argument delegate_;
