@@ -12,6 +12,8 @@
 
     <modules>
         <module>commvoker-core</module>
+        <module>commvoker-bukkit</module>
+        <module>commvoker-spigot</module>
     </modules>
 
 

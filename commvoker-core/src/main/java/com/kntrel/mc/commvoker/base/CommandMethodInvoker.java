@@ -2,7 +2,6 @@ package com.kntrel.mc.commvoker.base;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
