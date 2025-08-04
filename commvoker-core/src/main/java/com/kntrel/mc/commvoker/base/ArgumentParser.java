@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.type.Contextualizer;
+import com.kntrel.mc.commvoker.argument.assembler.Contextualizer;
 import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 

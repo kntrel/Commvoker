@@ -1,8 +1,8 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinder;
-import com.kntrel.mc.commvoker.builtin.ArgumentBindings;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
+import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.mock.MockImplicit;

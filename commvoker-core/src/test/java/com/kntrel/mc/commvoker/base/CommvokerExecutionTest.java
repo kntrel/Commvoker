@@ -1,7 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinder;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.argument.type.ContextualArgumentType;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
 import com.kntrel.util.Priority;

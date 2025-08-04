@@ -1,18 +1,23 @@
-package com.kntrel.mc.commvoker.builtin;
+package com.kntrel.mc.commvoker.provided;
 
 import com.kntrel.mc.commvoker.annotation.Word;
-import com.kntrel.mc.commvoker.argument.bind.UndefinedArgumentBinding;
-import com.kntrel.mc.commvoker.builtin.argumentType.CollectionArgumentType;
+import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
+import com.kntrel.mc.commvoker.provided.argumentType.CollectionArgumentType;
 import com.kntrel.mc.commvoker.exception.ArgumentResolutionException;
+import com.kntrel.mc.commvoker.provided.assemblers.IntegerAssembler;
+import com.kntrel.mc.commvoker.provided.assemblers.LongAssembler;
+import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
 import com.kntrel.util.Constants;
 import com.mojang.brigadier.arguments.*;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 
-import static com.kntrel.mc.commvoker.argument.bind.ArgumentBinder.*;
+import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
 
 public final class ArgumentBindings {
+
+
 
     private static final Set<Class<?>> PRIMITIVES = Set.of(boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class);
     private static Class<?> boxed(Class<?> primitive) {
@@ -30,30 +35,30 @@ public final class ArgumentBindings {
 
     private ArgumentBindings() {}
 
-    public static final UndefinedArgumentBinding<?>
-        STRING = argument(ctx -> {
-                if (ctx.isAnnotationPresent(Word.class)) { return StringArgumentType.word(); }
-                if (ctx.commandTokenIndex() == ctx.command().size() - 1) { return StringArgumentType.greedyString(); }
-                return StringArgumentType.string();
+    public static final ArgumentBinding<Object, ?>
+        STRING = argumentAssembler(ctx -> {
+                if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
+                if (ctx.commandTokenIndex() == ctx.command().size() - 1) { return StringAssembler.greedyString(); }
+                return StringAssembler.string();
             })
             .toClass(String.class)
             .bind(),
-        INTEGER = argument(() -> IntegerArgumentType.integer())
+        INTEGER = argumentAssembler(() -> IntegerAssembler.integer())
                 .toClass(Integer.class)
                 .bind(),
-        LONG = argument(() -> LongArgumentType.longArg())
+        LONG = argumentAssembler(() -> LongAssembler.longArg())
                 .toClass(Long.class)
                 .bind(),
-        DOUBLE = argument(() -> DoubleArgumentType.doubleArg())
+        DOUBLE = argumentAssembler(() -> DoubleArgumentType.doubleArg())
                 .toClass(Double.class)
                 .bind(),
-        BOOLEAN = argument(BoolArgumentType::bool)
+        BOOLEAN = argumentAssembler(BoolArgumentType::bool)
                 .toClass(Boolean.class)
                 .bind(),
-        PRIMITIVE = compose(g -> g.resolveType(boxed((Class<?>) g.type())))
+        PRIMITIVE = argumentAssembler(g -> g.resolveType(boxed((Class<?>) g.type())))
                 .toCondition(ctx -> ctx.type() instanceof Class<?> c && PRIMITIVES.contains(c))
                 .bind(),
-        LIST = compose(g -> {
+        LIST = argumentAssembler(g -> {
                     Type type = g.type();
                     if (!(type instanceof ParameterizedType parameterizedType)) {
                         throw new ArgumentResolutionException();
@@ -63,7 +68,7 @@ public final class ArgumentBindings {
                 })
                 .toClass((Class) List.class)
                 .bind(),
-        SET = compose(g -> {
+        SET = argumentAssembler(g -> {
                 Type type = g.type();
                 if (!(type instanceof ParameterizedType parameterizedType)) {
                     throw new ArgumentResolutionException();
@@ -76,7 +81,7 @@ public final class ArgumentBindings {
 
 
     @SuppressWarnings("unchecked")
-    public static Collection<UndefinedArgumentBinding<?>> all() {
-        return Constants.getAll(ArgumentBindings.class, (Class<UndefinedArgumentBinding<?>>) (Class<?>) UndefinedArgumentBinding.class);
+    public static Collection<ArgumentBinding<Object, ?>> all() {
+        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?>>) (Class<?>) ArgumentBindings.class);
     }
 }

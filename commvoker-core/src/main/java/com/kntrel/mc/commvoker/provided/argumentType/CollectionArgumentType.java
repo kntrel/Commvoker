@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.builtin.argumentType;
+package com.kntrel.mc.commvoker.provided.argumentType;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;

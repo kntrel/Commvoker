@@ -1,12 +1,11 @@
 package com.kntrel.mc.commvoker.argument.bind;
 
-import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ParameterContext;
 import com.kntrel.util.Priority;
 import java.lang.annotation.Annotation;
 import java.util.function.Predicate;
 
-public interface SimpleArgumentBinding<C extends ParameterContext, T> extends Predicate<C>, Comparable<SimpleArgumentBinding<C, T>> {
+public interface BaseArgumentBinding<C extends ParameterContext, T> extends Predicate<C>, Comparable<BaseArgumentBinding<C, T>> {
     Class<T> toClass();
     Class<? extends Annotation> toAnnotation();
     Predicate<C> toCondition();
@@ -31,7 +30,7 @@ public interface SimpleArgumentBinding<C extends ParameterContext, T> extends Pr
         return true;
     }
 
-    default @Override int compareTo(SimpleArgumentBinding<C, T> o) {
+    default @Override int compareTo(BaseArgumentBinding<C, T> o) {
         return this.priority().compareTo(o.priority());
     }
 }

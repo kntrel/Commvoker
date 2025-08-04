@@ -2,8 +2,8 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.*;
 import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentGatherer;
-import com.kntrel.mc.commvoker.argument.bind.SimpleArgumentBinding;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.bind.BaseArgumentBinding;
 import com.kntrel.mc.commvoker.argument.bind.ImplicitArgumentBinding;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.SetMap;
@@ -13,7 +13,7 @@ import java.util.*;
 
 class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S> {
 
-    private static class Registry<C extends ParameterContext, T extends SimpleArgumentBinding<C, ?>> {
+    private static class Registry<C extends ParameterContext, T extends BaseArgumentBinding<C, ?>> {
         private final TreeSet<T> unBound_;
         private final SetMap<Class<?>, T> classMap_;
         private final SetMap<Class<? extends Annotation>, T> annotationMap_;
