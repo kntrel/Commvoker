@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.argument.assembler;
+package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.context.CommandContext;

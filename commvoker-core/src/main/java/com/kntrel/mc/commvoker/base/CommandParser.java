@@ -1,29 +1,27 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
-import com.kntrel.mc.commvoker.argument.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
-import com.kntrel.mc.commvoker.argument.ParameterContext;
-import com.kntrel.mc.commvoker.command.CommandDefinition;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentNode;
 import com.kntrel.mc.commvoker.command.CommandPattern;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
-import com.kntrel.mc.commvoker.command.CommandToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
-import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
-import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
-import java.util.function.Predicate;
+import java.util.function.BiFunction;
 
 class CommandParser<S> {
 
     //ASSETS
-    private record ParamInfo(Parameter param, int index) {}
+    private record ArgInfo<S>(ArgumentDescriptor<? super S, ?> arg, Parameter param, int index) {}
 
 
     //FIElDS
@@ -102,105 +100,74 @@ class CommandParser<S> {
         }
         CommandPattern pattern = new CommandPattern(patternTokens);
 
-        // Splitting virtual-mapped and parsed-mapped parameters
+        // Extracting explicit parameters
         Parameter[] params = method.getParameters();
-        ArgumentParser<S, ?>[] argumentParsers = new ArgumentParser[params.length];
-        Queue<ParamInfo> parsedParams = new LinkedList<>();
-        List<Predicate<S>> requirements = new LinkedList<>();
+        ArgumentParser<S>[] argumentParsers = new ArgumentParser[params.length];
+        Queue<ArgInfo<? super S>> explicitArguments = new LinkedList<>();
         for (int i = 0; i < params.length; i++) {
             Parameter param = params[i];
-            ParameterContext ctx = new ParameterContext(param, param.getParameterizedType(), method, i);
-            try {
-                ArgumentDescriptor.Implicit<S, ?> desc = this.argumentResolver_.resolveImplicit(ctx);
-                argumentParsers[i] = ArgumentParser.of(desc.argumentType());
-                Predicate<S> req = desc.requirement();
-                if (req != null) { requirements.add(req); }
-            } catch (NoSuchArgumentBindingException ignored) {
-                parsedParams.add(new ParamInfo(param, i));
+            ArgumentDescriptor<? super S, ?> arg = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, i, pattern));
+            if (arg.isImplicit()) {
+                BiFunction<CommandContext<? extends S>, Object[], ?> contextualizer = (c, o) -> arg.contextualizer().apply(c, o);
+                argumentParsers[i] = new ArgumentParser<>(new String[0], contextualizer);
+                continue;
             }
+            explicitArguments.add(new ArgInfo<>(arg, param, i));
         }
 
-        // Guard against mot enough parsed ArgumentTypes to cover for argument tokens
-        if (pattern.argumentCount() > parsedParams.size()) {
-            throw new BadCommandMethodException(method, "Command expects a minimum of " + pattern.argumentCount() + " arguments, but methods exposes " + parsedParams.size());
+        //Guard against too few explicit parameters
+        if (explicitArguments.size() > pattern.argumentCount()) {
+            throw new BadCommandMethodException(method,
+                "Too few explicit parameters. The command pattern expects a minimum of " + pattern.argumentCount() + " arguments, but the method declares " + explicitArguments.size() + " explicit parameters"
+            );
         }
 
-        // Compiling a concrete CommandDefinition from the CommandPattern and parsed parameters
-        List<CommandToken> tokens = new LinkedList<>();
-        tokens.add(new CommandToken(pattern.getLabelAt(0), CommandToken.Type.LITERAL));
-        Map<Integer, ParamInfo> paramTokens = new HashMap<>();
-        int i = 1;
-        while (i < pattern.size()) {
-            CommandPatternToken t = pattern.getTokenAt(i);
+        LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(pattern.getLabelAt(0));
+        Deque<ArgumentBuilder<S, ?>> nodes = new LinkedList<>();
+        nodes.add(root);
 
+        int tokenIndex = 1;
+        while (tokenIndex < pattern.size()) {
+            CommandPatternToken t = pattern.getTokenAt(tokenIndex);
             if (t.isLiteral()) {
-                tokens.add(new CommandToken(t.label(), CommandToken.Type.LITERAL));
-                i++;
+                nodes.add(LiteralArgumentBuilder.literal(t.label()));
+                tokenIndex++;
                 continue;
             }
 
             if (!t.isWildcard()) {
-                i++;
-            } else if (pattern.afterWildcardArgumentCount() >= parsedParams.size()) {
-                i++;
+                tokenIndex++;
+            } else if (explicitArguments.size() <= pattern.afterWildcardArgumentCount()) {
+                tokenIndex++;
                 continue;
             }
 
-            ParamInfo paramInfo = parsedParams.poll();
-            if (paramInfo == null) { break; }
-
-            String label = t.label();
-            if (label == null || label.isEmpty()) { label = paramInfo.param().getName(); }
-            CommandToken token = new CommandToken(label, CommandToken.Type.ARGUMENT);
-            paramTokens.put(tokens.size(), paramInfo);
-            tokens.add(token);
-        }
-        CommandDefinition command = new CommandDefinition(tokens);
-
-        // Building the brigadier tree
-        Deque<ArgumentBuilder<S, ?>> stack = new LinkedList<>();
-        List<ArgumentType<?>> resolvedTypes = new LinkedList<>();
-        for (i = 0; i < command.size(); i++) {
-            CommandToken t = command.getTokenAt(i);
-            if (t.isLiteral()) {
-                stack.add(LiteralArgumentBuilder.literal(t.label()));
-                continue;
-            }
-
-            ParamInfo paramInfo = paramTokens.get(i);
-            Parameter param = paramInfo.param();
-            ArgumentContext ctx = new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, resolvedTypes.toArray(new ArgumentType[0]));
-            ArgumentDescriptor<S> desc = this.argumentResolver_.resolve(ctx);
-            ArgumentType<?> argType = (ArgumentType<?>) desc.argumentType();
-
-            switch (desc) {
-                case ArgumentDescriptor.Parsed<S, ?> p -> {
-                    argType = p.argumentType();
-                    argumentParsers[paramInfo.index()] = ArgumentParser.of(t.label(), param.getType());
+            ArgInfo<? super S> argInfo = explicitArguments.poll();
+            ArgumentDescriptor<? super S, ?> arg = argInfo.arg();
+            String label = t.isLabeled() ? t.label() : argInfo.param().getName();
+            Collection<? extends ArgumentNode<? super S, ?>> argumentNodes = arg.argumentNodes();
+            List<String> names = new ArrayList<>(argumentNodes.size());
+            for (ArgumentNode<? super S, ?> n : argumentNodes) {
+                String l = argumentNodes.size() < 2 ? label : label + names.size();
+                RequiredArgumentBuilder<S, ?> builder = RequiredArgumentBuilder.argument(l, n.argumentType());
+                if (n.suggestionProvider() != null) {
+                    builder.suggests((SuggestionProvider<S>) n.suggestionProvider());
                 }
-                case ArgumentDescriptor.Contextual<S, ?, ?> c -> {
-                    argType = c.argumentType();
-                    argumentParsers[paramInfo.index()] = ArgumentParser.of(t.label(), c.argumentType());
-                }
-                case ArgumentDescriptor.Implicit<S, ?> imp -> argType = null;       // Can't happen.
+                names.add(l);
+                nodes.add(builder);
             }
+            argumentParsers[argInfo.index()] = new ArgumentParser<S>(names.toArray(new String[0]), (BiFunction) arg.contextualizer());
 
-            RequiredArgumentBuilder<S, ?> arg = RequiredArgumentBuilder.argument(t.label(), argType);
-            if (desc.requirement() != null) { arg.requires(desc.requirement()); }
-            stack.add(arg);
-            resolvedTypes.add(argType);
         }
 
-        // Connecting the brigadier tree (must be done backwards)
-        ArgumentBuilder<S, ?> curr = stack.pollLast();
-        curr.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
-        while (!stack.isEmpty()) {
-            ArgumentBuilder<S, ?> prev = curr;
-            curr = stack.pollLast();
-            curr.then(prev);
+        ArgumentBuilder<S, ?> curr = nodes.pollLast();
+        while (!nodes.isEmpty()) {
+            ArgumentBuilder<S, ?> next = nodes.pollLast();
+            next.then(curr);
+            curr = next;
         }
 
-        return (LiteralArgumentBuilder<S>) curr;
+        return root;
     }
 
     private static CommandPatternToken.Type categorize(String word) {

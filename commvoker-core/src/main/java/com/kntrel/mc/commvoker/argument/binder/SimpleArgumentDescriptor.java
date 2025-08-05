@@ -9,6 +9,6 @@ import java.util.function.Predicate;
 
 record SimpleArgumentDescriptor<S, T>(
         Collection<ArgumentNode<? super S, ?>> argumentNodes,
-        BiFunction<CommandContext<S>, Object[], T> contextualizer,
+        BiFunction<CommandContext<? extends S>, Object[], T> contextualizer,
         Predicate<S> requirement
 ) implements ArgumentDescriptor<S, T> {}

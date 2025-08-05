@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.argument.assembler;
+package com.kntrel.mc.commvoker.assembler;
 
 class Utils {
 

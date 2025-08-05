@@ -2,18 +2,17 @@ package com.kntrel.mc.commvoker.base;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 class CommandMethodInvoker<S> implements Command<S> {
 
     private final Method method_;
-    private final ArgumentParser<S, ?>[] argumentParsers_;
+    private final ArgumentParser<S>[] argumentParsers_;
     private final Object instance_;
 
 
-    CommandMethodInvoker(Object instance, Method method, ArgumentParser<S, ?>[] arguments) {
+    CommandMethodInvoker(Object instance, Method method, ArgumentParser<S>[] arguments) {
         if (method.getParameterCount() != arguments.length) {
             throw new IllegalArgumentException("Method argument count isn't equal to ArgumentParser array length");
         }

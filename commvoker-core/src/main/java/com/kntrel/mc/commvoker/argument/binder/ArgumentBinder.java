@@ -1,8 +1,8 @@
 package com.kntrel.mc.commvoker.argument.binder;
 
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
-import com.kntrel.mc.commvoker.argument.assembler.Assembler;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
+import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.argument.ArgumentBinding;
 import com.kntrel.util.Priority;
 import java.lang.annotation.Annotation;
 import java.util.function.Function;
@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 public class ArgumentBinder<S, T> {
 
     //FACTORY
-    public static <S, T> ArgumentBinder<S, T> argumentAssembler(Function<ArgumentGatherer<S>, Assembler<S, T>> supplier) {
+    public static <S, T> ArgumentBinder<S, T> argumentAssembler(Function<ArgumentGatherer<? extends S>, Assembler<S, T>> supplier) {
         return new ArgumentBinder<>(supplier);
     }
     public static <S, T> ArgumentBinder<S, T> argumentAssembler(Supplier<Assembler<S, T>> supplier) {
@@ -21,7 +21,7 @@ public class ArgumentBinder<S, T> {
 
 
     //FIELDS
-    private final Function<ArgumentGatherer<S>, Assembler<S, T>> supplier_;
+    private final Function<ArgumentGatherer<? extends S>, Assembler<S, T>> supplier_;
     private Class<T> type_;
     private Class<? extends Annotation> annotation_;
     private Predicate<ArgumentContext> condition_;
@@ -30,7 +30,7 @@ public class ArgumentBinder<S, T> {
 
 
     //CONSTRUCTOR
-    private ArgumentBinder(Function<ArgumentGatherer<S>, Assembler<S, T>> supplier) {
+    private ArgumentBinder(Function<ArgumentGatherer<? extends S>, Assembler<S, T>> supplier) {
         this.supplier_ = supplier;
         this.type_ = null;
         this.annotation_ = null;

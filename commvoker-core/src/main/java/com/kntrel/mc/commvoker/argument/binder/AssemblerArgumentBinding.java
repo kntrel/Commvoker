@@ -1,10 +1,10 @@
 package com.kntrel.mc.commvoker.argument.binder;
 
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
-import com.kntrel.mc.commvoker.argument.assembler.Assembler;
-import com.kntrel.mc.commvoker.argument.assembler.ComposedAssembler;
-import com.kntrel.mc.commvoker.argument.assembler.EndAssembler;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
+import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
+import com.kntrel.mc.commvoker.assembler.EndAssembler;
+import com.kntrel.mc.commvoker.argument.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentNode;
 import com.kntrel.util.Priority;
@@ -17,7 +17,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 record AssemblerArgumentBinding<S, T>(
-        Function<ArgumentGatherer<S>, Assembler<S, T>> supplier,
+        Function<ArgumentGatherer<? extends S>, Assembler<S, T>> supplier,
         Class<T> toClass,
         Class<? extends Annotation> toAnnotation,
         Predicate<ArgumentContext> toCondition,
@@ -26,7 +26,7 @@ record AssemblerArgumentBinding<S, T>(
 ) implements ArgumentBinding<S, T> {
 
     @Override
-    public ArgumentDescriptor<S, T> descriptor(ArgumentGatherer<S> ctx) {
+    public ArgumentDescriptor<S, T> descriptor(ArgumentGatherer<? extends S> ctx) {
         Assembler<S, T> assembler = this.supplier.apply(ctx);
         return new SimpleArgumentDescriptor<>(argumentNodes(assembler), new AssemblerContextualizer<>(assembler), this.requirement);
     }
@@ -38,7 +38,7 @@ record AssemblerArgumentBinding<S, T>(
             case EndAssembler<?> e -> { out.add(new ArgumentNode<>(e.argumentType(), null)); }
 
             case ComposedAssembler<S, T> c -> { for (var d : c.delegates()) {
-                LinkedList<ArgumentNode<? super S, ?>> delegateNodes = (LinkedList<ArgumentNode<? super S,?>>) argumentNodes(d.first());
+                LinkedList<ArgumentNode<? super S, ?>> delegateNodes = (LinkedList) argumentNodes(d.first());
                 SuggestionProvider<? super S> suggestionProvider = d.second();
                 if (!delegateNodes.isEmpty() && suggestionProvider != null) {
                     ArgumentNode<? super S, ?> originalNode = delegateNodes.removeFirst();
@@ -52,7 +52,7 @@ record AssemblerArgumentBinding<S, T>(
         return out;
     }
 
-    private static class AssemblerContextualizer<S, T> implements BiFunction<CommandContext<S>, Object[], T> {
+    private static class AssemblerContextualizer<S, T> implements BiFunction<CommandContext<? extends S>, Object[], T> {
 
         private final Assembler<? super S, ? extends T> assembler_;
 
@@ -61,12 +61,12 @@ record AssemblerArgumentBinding<S, T>(
         }
 
         @Override
-        public T apply(CommandContext<S> ctx, Object[] objects) {
+        public T apply(CommandContext<? extends S> ctx, Object[] objects) {
             return this.consume(ctx, new LinkedList<>(Arrays.asList(objects)), this.assembler_);
         }
 
         @SuppressWarnings("unchecked")
-        private <I> I consume(CommandContext<S> ctx, Queue<Object> objects, Assembler<? super S, I> assembler) {
+        private <I> I consume(CommandContext<? extends S> ctx, Queue<Object> objects, Assembler<? super S, I> assembler) {
 
             if (assembler instanceof EndAssembler<?>) {
                 return (I) objects.poll();

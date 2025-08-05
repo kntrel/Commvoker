@@ -1,66 +1,30 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.assembler.Contextualizer;
-import com.kntrel.mc.commvoker.argument.type.ImplicitArgumentType;
+
 import com.mojang.brigadier.context.CommandContext;
 
-interface ArgumentParser<S, T> {
+import java.util.function.BiFunction;
 
-    static <S, T> ArgumentParser<S, T> of(ImplicitArgumentType<S, T> virtual) {
-        return new Implicit<>(virtual);
-    }
-    static <S, T> ArgumentParser<S, T> of(String name, Class<T> type) {
-        return new Argument<>(name, type);
-    }
-    static <S, T> ArgumentParser<S, T> of(String name, Contextualizer<S, ?, T> type) {
-        return new Contextual<>(name, type);
-    }
+class ArgumentParser<S> {
 
-    T parse(CommandContext<S> ctx);
+    //FIELDS
+    private final String[] argumentNames_;
+    private final BiFunction<CommandContext<? extends S>, Object[], ?> contextualizer_;
 
-    class Implicit<S, T> implements ArgumentParser<S, T> {
 
-        private final ImplicitArgumentType<S, T> argumentType_;
-
-        private Implicit(ImplicitArgumentType<S, T> implicitArgumentType) {
-            this.argumentType_ = implicitArgumentType;
-        }
-
-        @Override public T parse(CommandContext<S> ctx) {
-            return this.argumentType_.parse(ctx);
-        }
-
+    //CONSTRUCTOR
+    ArgumentParser(String[] argumentNames, BiFunction<CommandContext<? extends S>, Object[], ?> contextualizer) {
+        this.argumentNames_ = argumentNames;
+        this.contextualizer_ = contextualizer;
     }
 
-    class Argument<S, T> implements ArgumentParser<S, T> {
 
-        private final Class<T> type_;
-        private final String name_;
-
-        private Argument(String name, Class<T> type) {
-            this.type_ = type;
-            this.name_ = name;
+    //UTIL
+    Object parse(CommandContext<? extends S> ctx) {
+        Object[] objects = new Object[this.argumentNames_.length];
+        for (int i = 0; i < objects.length; i++) {
+            objects[i] = ctx.getArgument(this.argumentNames_[i], Object.class);
         }
-
-        @Override public T parse(CommandContext<S> ctx) {
-            return ctx.getArgument(this.name_, this.type_);
-        }
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    class Contextual<S, T> implements ArgumentParser<S, T> {
-
-        private final String name_;
-        public final Contextualizer<S, ?, T> contextualizer_;
-
-        private Contextual(String name, Contextualizer<S, ?, T> contextualizer) {
-            this.name_ = name;
-            this.contextualizer_ = contextualizer;
-        }
-
-        @Override public T parse(CommandContext<S> ctx) {
-            Object i = ctx.getArgument(this.name_, Object.class);
-            return (T) ((Contextualizer) this.contextualizer_).contextualize(ctx, i);
-        }
+        return this.contextualizer_.apply(ctx, objects);
     }
 }

@@ -7,6 +7,10 @@ import java.util.function.BiFunction;
 
 public interface ArgumentDescriptor<S, T> extends BaseArgumentDescriptor<S> {
 
-    Collection<ArgumentNode<? super S, ?>> argumentNodes();
-    BiFunction<CommandContext<S>, Object[], T>  contextualizer();
+    Collection<? extends ArgumentNode<? super S, ?>> argumentNodes();
+    BiFunction<CommandContext<? extends S>, Object[], T>  contextualizer();
+
+    default boolean isImplicit() {
+        return this.argumentNodes().isEmpty();
+    }
 }

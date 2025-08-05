@@ -2,6 +2,7 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
+import com.kntrel.mc.commvoker.assembler.ImplicitAssembler;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
@@ -72,7 +73,7 @@ public class CommandParserParseTest {
     public CommandParserParseTest() {
         ArgumentResolverImpl<Object> resolver = new ArgumentResolverImpl<>();
         ArgumentBindings.all().forEach(resolver::register);
-        resolver.register(ArgumentBinder.implicit(() -> CommandContext::getSource)
+        resolver.register(ArgumentBinder.argumentAssembler(() -> (ImplicitAssembler<Object, Object>) CommandContext::getSource)
                 .toAnnotation(MockImplicit.class)
                 .toClass(Object.class)
                 .bind());

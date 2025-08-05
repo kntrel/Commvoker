@@ -2,13 +2,12 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
-import com.kntrel.mc.commvoker.argument.type.ContextualArgumentType;
+import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
+import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.junit.jupiter.api.*;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,16 +55,16 @@ class CommvokerExecutionTest {
         }
     }
 
-    private static class MockContextualArgumentType implements ContextualArgumentType<Object, String, String> {
+    private static class MockContextualAssembler implements TransformAssembler<Object, String, String> {
 
         @Override
-        public String parse(StringReader reader) throws CommandSyntaxException {
-            return StringArgumentType.word().parse(reader);
+        public Assembler<? super Object, ? extends String> delegate() {
+            return StringAssembler.string();
         }
 
         @Override
-        public String contextualize(CommandContext<Object> context, String subject) {
-            return context.getSource().getClass().getSimpleName() + "-" + subject;
+        public String contextualize(CommandContext<?> ctx, String object) {
+            return ctx.getSource().getClass().getSimpleName() + "-" + object;
         }
     }
 
@@ -129,7 +128,7 @@ class CommvokerExecutionTest {
     @Test void contextualArgumentTypes() {
         commvoker = new MockCommvoker();
         this.commvoker.getArgumentRegistry().register(
-                ArgumentBinder.contextual(MockContextualArgumentType::new)
+                ArgumentBinder.argumentAssembler(MockContextualAssembler::new)
                         .toClass(String.class)
                         .withPriority(Priority.HIGH)
                         .bind()

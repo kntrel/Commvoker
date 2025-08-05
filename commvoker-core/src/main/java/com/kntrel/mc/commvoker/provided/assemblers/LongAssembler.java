@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.assembler.EndAssembler;
+import com.kntrel.mc.commvoker.assembler.EndAssembler;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 

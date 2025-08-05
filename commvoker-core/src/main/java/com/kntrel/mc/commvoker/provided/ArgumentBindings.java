@@ -1,16 +1,14 @@
 package com.kntrel.mc.commvoker.provided;
 
 import com.kntrel.mc.commvoker.annotation.Word;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
-import com.kntrel.mc.commvoker.provided.argumentType.CollectionArgumentType;
-import com.kntrel.mc.commvoker.exception.ArgumentResolutionException;
-import com.kntrel.mc.commvoker.provided.assemblers.IntegerAssembler;
-import com.kntrel.mc.commvoker.provided.assemblers.LongAssembler;
-import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
+import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.argument.ArgumentBinding;
+import com.kntrel.mc.commvoker.command.CommandPattern;
+import com.kntrel.mc.commvoker.command.CommandPatternToken;
+import com.kntrel.mc.commvoker.provided.assemblers.*;
 import com.kntrel.util.Constants;
-import com.mojang.brigadier.arguments.*;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+
+import java.lang.reflect.Parameter;
 import java.util.*;
 
 import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
@@ -38,7 +36,10 @@ public final class ArgumentBindings {
     public static final ArgumentBinding<Object, ?>
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
-                if (ctx.commandTokenIndex() == ctx.command().size() - 1) { return StringAssembler.greedyString(); }
+
+                CommandPattern command = ctx.command();
+                CommandPatternToken latestToken = command.getTokenAt(command.size() - 1);
+                if (ctx.method().getParameterCount() == ctx.parameterIndex() - 1 && !latestToken.isLiteral()) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
@@ -49,35 +50,12 @@ public final class ArgumentBindings {
         LONG = argumentAssembler(() -> LongAssembler.longArg())
                 .toClass(Long.class)
                 .bind(),
-        DOUBLE = argumentAssembler(() -> DoubleArgumentType.doubleArg())
+        DOUBLE = argumentAssembler(() -> DoubleAssembler.doubleArg())
                 .toClass(Double.class)
                 .bind(),
-        BOOLEAN = argumentAssembler(BoolArgumentType::bool)
+        BOOLEAN = argumentAssembler(BoolAssembler::bool)
                 .toClass(Boolean.class)
-                .bind(),
-        PRIMITIVE = argumentAssembler(g -> g.resolveType(boxed((Class<?>) g.type())))
-                .toCondition(ctx -> ctx.type() instanceof Class<?> c && PRIMITIVES.contains(c))
-                .bind(),
-        LIST = argumentAssembler(g -> {
-                    Type type = g.type();
-                    if (!(type instanceof ParameterizedType parameterizedType)) {
-                        throw new ArgumentResolutionException();
-                    }
-                    ArgumentType<?> wrapped = g.resolveType(parameterizedType.getActualTypeArguments()[0]);
-                    return CollectionArgumentType.listOf(wrapped);
-                })
-                .toClass((Class) List.class)
-                .bind(),
-        SET = argumentAssembler(g -> {
-                Type type = g.type();
-                if (!(type instanceof ParameterizedType parameterizedType)) {
-                    throw new ArgumentResolutionException();
-                }
-                ArgumentType<?> wrapped = g.resolveType(parameterizedType.getActualTypeArguments()[0]);
-                return CollectionArgumentType.setOf(wrapped);
-            })
-                    .toClass((Class) Set.class)
-                    .bind();
+                .bind();
 
 
     @SuppressWarnings("unchecked")
