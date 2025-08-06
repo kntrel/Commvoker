@@ -1,8 +1,9 @@
 package com.kntrel.mc.commvoker.argument;
 
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+
 public interface ArgumentResolver<S> {
 
-    ArgumentDescriptor<S> resolve(ArgumentContext ctx);
-    ArgumentDescriptor.Implicit<S, ?> resolveImplicit(ParameterContext ctx);
+    ArgumentDescriptor<? super S, ?> resolve(ArgumentContext ctx);
 
 }

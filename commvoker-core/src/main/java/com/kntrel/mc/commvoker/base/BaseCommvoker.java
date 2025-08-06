@@ -2,7 +2,7 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
 import com.kntrel.mc.commvoker.argument.ArgumentRegistry;
-import com.kntrel.mc.commvoker.builtin.ArgumentBindings;
+import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;

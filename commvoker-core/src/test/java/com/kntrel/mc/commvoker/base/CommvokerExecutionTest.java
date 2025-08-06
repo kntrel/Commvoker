@@ -1,16 +1,16 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.annotation.Command;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinder;
-import com.kntrel.mc.commvoker.argument.type.ContextualArgumentType;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
+import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
+import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.junit.jupiter.api.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,6 +35,8 @@ class CommvokerExecutionTest {
         /* greedy‑string capture */
         volatile String echoed = null;
 
+        List<String> list = null;
+
         @Command("ping")
         public void ping() {                       // -> /ping
             pingCalled.set(true);
@@ -54,18 +56,23 @@ class CommvokerExecutionTest {
         public void say(String msg) {              // -> /say <msg...>  (greedy)
             echoed = msg;
         }
+
+        @Command("names {name_list}")
+        public void setNames(List<String> names) {              // -> /say <msg...>  (greedy)
+            this.list = names;
+        }
     }
 
-    private static class MockContextualArgumentType implements ContextualArgumentType<Object, String, String> {
+    private static class MockContextualAssembler implements TransformAssembler<Object, String, String> {
 
         @Override
-        public String parse(StringReader reader) throws CommandSyntaxException {
-            return StringArgumentType.word().parse(reader);
+        public Assembler<? super Object, ? extends String> delegate() {
+            return StringAssembler.string();
         }
 
         @Override
-        public String contextualize(CommandContext<Object> context, String subject) {
-            return context.getSource().getClass().getSimpleName() + "-" + subject;
+        public String compose(CommandContext<?> ctx, String object) {
+            return ctx.getSource().getClass().getSimpleName() + "-" + object;
         }
     }
 
@@ -126,10 +133,23 @@ class CommvokerExecutionTest {
                 "Greedy string did not consume entire remainder");
     }
 
+    @Test
+    void listArgument() {
+        assertNull(holder.list);
+
+        /* Note the spaces – everything after 'say ' becomes one String */
+        assertDoesNotThrow(() -> commvoker.execute("names [john, mike, sarah]", SRC));
+        assertNotNull(holder.list);
+        assertEquals(3, holder.list.size());
+        assertEquals("john", holder.list.get(0));
+        assertEquals("mike", holder.list.get(1));
+        assertEquals("sarah", holder.list.get(2));
+    }
+
     @Test void contextualArgumentTypes() {
         commvoker = new MockCommvoker();
         this.commvoker.getArgumentRegistry().register(
-                ArgumentBinder.contextual(MockContextualArgumentType::new)
+                ArgumentBinder.argumentAssembler(MockContextualAssembler::new)
                         .toClass(String.class)
                         .withPriority(Priority.HIGH)
                         .bind()

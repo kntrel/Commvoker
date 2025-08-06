@@ -1,18 +1,20 @@
-package com.kntrel.mc.commvoker.argument.bind;
+package com.kntrel.mc.commvoker.argument;
 
-import com.kntrel.mc.commvoker.argument.ArgumentContext;
-import com.kntrel.mc.commvoker.argument.ParameterContext;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.util.Priority;
 import java.lang.annotation.Annotation;
 import java.util.function.Predicate;
 
-public interface SimpleArgumentBinding<C extends ParameterContext, T> extends Predicate<C>, Comparable<SimpleArgumentBinding<C, T>> {
+public interface ArgumentBinding<S, T> extends Predicate<ArgumentContext>, Comparable<ArgumentBinding<S, T>> {
+
     Class<T> toClass();
     Class<? extends Annotation> toAnnotation();
-    Predicate<C> toCondition();
+    Predicate<ArgumentContext> toCondition();
     Priority priority();
+    ArgumentDescriptor<S, T> descriptor(ArgumentGatherer<? extends S> ctx);
 
-    default @Override boolean test(C ctx) {
+    default @Override boolean test(ArgumentContext ctx) {
         Class<?> clazz = this.toClass();
         if (clazz != null && ctx.type() instanceof Class<?> c && !c.isAssignableFrom(clazz)) {
             return false;
@@ -23,15 +25,14 @@ public interface SimpleArgumentBinding<C extends ParameterContext, T> extends Pr
             return false;
         }
 
-        Predicate<C> condition = this.toCondition();
+        Predicate<ArgumentContext> condition = this.toCondition();
         if (condition != null) {
             return condition.test(ctx);
         }
 
         return true;
     }
-
-    default @Override int compareTo(SimpleArgumentBinding<C, T> o) {
+    default @Override int compareTo(ArgumentBinding<S, T> o) {
         return this.priority().compareTo(o.priority());
     }
 }

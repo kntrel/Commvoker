@@ -1,10 +1,9 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.*;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentBinding;
-import com.kntrel.mc.commvoker.argument.bind.ArgumentGatherer;
-import com.kntrel.mc.commvoker.argument.bind.SimpleArgumentBinding;
-import com.kntrel.mc.commvoker.argument.bind.ImplicitArgumentBinding;
+import com.kntrel.mc.commvoker.argument.ArgumentBinding;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.SetMap;
 import java.lang.annotation.Annotation;
@@ -13,10 +12,10 @@ import java.util.*;
 
 class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S> {
 
-    private static class Registry<C extends ParameterContext, T extends SimpleArgumentBinding<C, ?>> {
-        private final TreeSet<T> unBound_;
-        private final SetMap<Class<?>, T> classMap_;
-        private final SetMap<Class<? extends Annotation>, T> annotationMap_;
+    private static class Registry<S> {
+        private final TreeSet<ArgumentBinding<? super S, ?>> unBound_;
+        private final SetMap<Class<?>, ArgumentBinding<? super S, ?>> classMap_;
+        private final SetMap<Class<? extends Annotation>, ArgumentBinding<? super S, ?>> annotationMap_;
 
         Registry() {
             this.unBound_ = new TreeSet<>();
@@ -24,7 +23,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
             this.annotationMap_ = new SetMap<>(TreeSet::new);
         }
 
-        void register(T binding) {
+        void register(ArgumentBinding<? super S, ?> binding) {
             if (binding.toClass() != null) {
                 this.classMap_.putInto(binding.toClass(), binding);
                 return;
@@ -36,15 +35,15 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
             this.unBound_.add(binding);
         }
 
-        PriorityQueue<T> resolve(C ctx) {
-            PriorityQueue<T> matches = new PriorityQueue<>();
+        PriorityQueue<ArgumentBinding<? super S, ?>> resolve(ArgumentContext ctx) {
+            PriorityQueue<ArgumentBinding<? super S, ?>> matches = new PriorityQueue<>();
 
             //Query for an exact class matching
             Class<?> type = (ctx.type() instanceof ParameterizedType t)
                     ? (Class<?>) t.getRawType()
                     : (Class<?>) ctx.type();
 
-            Set<T> match = this.classMap_.get(type);
+            Set<ArgumentBinding<? super S, ?>> match = this.classMap_.get(type);
             if (match != null) {
                 match.stream()
                         .filter(b -> b.test(ctx))
@@ -84,40 +83,26 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
     }
 
 
-    private final Registry<ArgumentContext, ArgumentBinding<S, ?>> argumentRegistry_;
-    private final Registry<ParameterContext, ImplicitArgumentBinding<S, ?>> virtualArgumentRegistry_;
+    private final Registry<S> registry_;
 
 
     ArgumentResolverImpl() {
-        this.argumentRegistry_ = new Registry<>();
-        this.virtualArgumentRegistry_ = new Registry<>();
+        this.registry_ = new Registry<>();
     }
 
 
-    @Override public void register(ArgumentBinding<S, ?> binding) {
-        this.argumentRegistry_.register(binding);
+    @Override public void register(ArgumentBinding<? super S, ?> binding) {
+        this.registry_.register(binding);
     }
 
-    @Override public void register(ImplicitArgumentBinding<S, ?> binding) {
-        this.virtualArgumentRegistry_.register(binding);
-    }
 
-    @Override public ArgumentDescriptor<S> resolve(ArgumentContext ctx) {
-        PriorityQueue<ArgumentBinding<S, ?>> matches = this.argumentRegistry_.resolve(ctx);
-        ArgumentBinding<S, ?> binding = matches.poll();
+    @Override public ArgumentDescriptor<? super S, ?> resolve(ArgumentContext ctx) {
+        PriorityQueue<ArgumentBinding<? super S, ?>> matches = this.registry_.resolve(ctx);
+        ArgumentBinding<? super S, ?> binding = matches.poll();
         if (binding == null) {
             throw new NoSuchArgumentBindingException(ctx);
         }
         ArgumentGatherer<S> resolutionContext = new ArgumentGatherer<>(ctx, this, matches);
         return binding.descriptor(resolutionContext);
-    }
-
-    @Override public ArgumentDescriptor.Implicit<S, ?> resolveImplicit(ParameterContext ctx) {
-        PriorityQueue<ImplicitArgumentBinding<S, ?>> matches = this.virtualArgumentRegistry_.resolve(ctx);
-        ImplicitArgumentBinding<S, ?> binding = matches.poll();
-        if (binding == null) {
-            throw new NoSuchArgumentBindingException(ctx);
-        }
-        return binding.descriptor(ctx);
     }
 }
