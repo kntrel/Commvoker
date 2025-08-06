@@ -6,7 +6,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -15,7 +14,7 @@ public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T>
     Assembler<? super S, ? extends A> firstDelegate();
     Assembler<? super S, ? extends B> secondDelegate();
 
-    T contextualize(CommandContext<? extends S> ctx, A first, B second);
+    T compose(CommandContext<? extends S> ctx, A first, B second);
 
     default CompletableFuture<Suggestions> getFirstSuggestions(CommandContext<S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
@@ -32,7 +31,7 @@ public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T>
     }
 
     @Override
-    default Collection<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
+    default List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
         SuggestionProvider<? super S> firstProvider = this::getFirstSuggestions,
                                       secondProvider = this::getSecondSuggestions;
         return List.of(
@@ -42,8 +41,8 @@ public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T>
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(CommandContext<? extends S> ctx, Object[] objects) {
-        return this.contextualize(ctx, (A) objects[0], (B) objects[1]);
+    default T compose(CommandContext<? extends S> ctx, Object[] objects) {
+        return this.compose(ctx, (A) objects[0], (B) objects[1]);
     }
 
 }

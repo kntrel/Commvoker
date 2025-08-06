@@ -6,7 +6,6 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,7 +15,7 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     Assembler<? super S, ? extends B> secondDelegate();
     Assembler<? super S, ? extends C> thirdDelegate();
 
-    T contextualize(CommandContext<? extends S> ctx, A first, B second, C third);
+    T compose(CommandContext<? extends S> ctx, A first, B second, C third);
 
     default CompletableFuture<Suggestions> getFirstSuggestions(CommandContext<S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
@@ -39,7 +38,7 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     }
 
     @Override
-    default Collection<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
+    default List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
         SuggestionProvider<? super S> firstProvider = this::getFirstSuggestions,
                                       secondProvider = this::getSecondSuggestions,
                                       thirdProvider = this::getThirdSuggestions;
@@ -51,8 +50,8 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(CommandContext<? extends S> ctx, Object[] objects) {
-        return this.contextualize(ctx, (A) objects[0], (B) objects[1], (C) objects[2]);
+    default T compose(CommandContext<? extends S> ctx, Object[] objects) {
+        return this.compose(ctx, (A) objects[0], (B) objects[1], (C) objects[2]);
     }
 
 }

@@ -42,7 +42,7 @@ public class ArgumentDescriptorAssembler<S, T> implements ComposedAssembler<S, T
         return this.delegates_;
     }
     @Override
-    public T contextualize(CommandContext<? extends S> ctx, Object[] objects) {
+    public T compose(CommandContext<? extends S> ctx, Object[] objects) {
         return this.contextualizer_.apply(ctx, objects);
     }
 }

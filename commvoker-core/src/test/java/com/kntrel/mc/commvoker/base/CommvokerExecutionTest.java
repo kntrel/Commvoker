@@ -63,7 +63,7 @@ class CommvokerExecutionTest {
         }
 
         @Override
-        public String contextualize(CommandContext<?> ctx, String object) {
+        public String compose(CommandContext<?> ctx, String object) {
             return ctx.getSource().getClass().getSimpleName() + "-" + object;
         }
     }

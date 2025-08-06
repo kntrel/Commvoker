@@ -4,10 +4,13 @@ import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.argument.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
+
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentResolver<S> {
+public class ArgumentGatherer<S> extends ArgumentContext {
 
     private final ArgumentResolver<S> argumentResolver_;
     private final PriorityQueue<ArgumentBinding<? super S, ?>> alsoResolved_;
@@ -20,11 +23,27 @@ public class ArgumentGatherer<S> extends ArgumentContext implements ArgumentReso
         this.gathered_ = new LinkedHashSet<>();
     }
 
-    @Override public ArgumentDescriptor<? super S, ?> resolve(ArgumentContext ctx) {
-        ArgumentDescriptor<? super S, ?> result = this.argumentResolver_.resolve(ctx);
-        this.gathered_.add(result);
-        return result;
+    public ArgumentDescriptor<? super S, ?> resolve(Type type) {
+        if (this.type().equals(type)) {
+            return resolveNext();
+        }
+
+        ArgumentContext newContext = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command());
+        ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(newContext);
+        this.gathered_.add(descriptor);
+        return descriptor;
     }
+
+    public ArgumentDescriptor<? super S, ?> resolveNext() {
+        ArgumentBinding<? super S, ?> binding = this.alsoResolved_.poll();
+        if (binding == null) {
+            throw new NoSuchArgumentBindingException(this);
+        }
+        ArgumentDescriptor<? super S, ?> descriptor = binding.descriptor(this);
+        this.gathered_.add(descriptor);
+        return descriptor;
+    }
+
 
 
     Collection<ArgumentDescriptor<? super S, ?>> getGathered() {

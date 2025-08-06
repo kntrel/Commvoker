@@ -82,7 +82,7 @@ record AssemblerArgumentBinding<S, T>(
                 objs[i] = this.consume(ctx, objects, iterator.next().first());
             }
 
-            return composed.contextualize(ctx, objs);
+            return composed.compose(ctx, objs);
         }
     }
 }
