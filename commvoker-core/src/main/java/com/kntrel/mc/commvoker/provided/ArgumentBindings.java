@@ -10,8 +10,6 @@ import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.provided.assemblers.*;
 import com.kntrel.util.Constants;
 import com.kntrel.util.Priority;
-
-import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
@@ -89,6 +87,13 @@ public final class ArgumentBindings {
                 })
                 .toClass((Class<Set<?>>) (Class) Set.class)
                 .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
+                .bind(),
+        ARRAY = argumentAssembler(ctx -> {
+                    Class<?> type = ((Class<?>) ctx.type()).componentType();
+                    ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
+                    return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<?, Object>) Assembler.ofArgumentDescriptor(descriptor));
+                })
+                .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
                 .bind();
 
 
