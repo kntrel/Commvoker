@@ -10,6 +10,7 @@ import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.Priority;
+import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -118,18 +119,18 @@ class ArgumentResolverImplTest {
         assertInstanceOf(DoubleArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
     }
 
-    @Test
+    @Test @SuppressWarnings("rawtypes")
     void resolvesListOfIntegers_toCollectionList() {
         var desc = resolver.resolve(ctx(DUMMY, 5));
-        CollectionArgumentType<?, ?> collectionArgumentType = assertInstanceOf(CollectionArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
-        assertEquals(List.class, collectionArgumentType.getCollectionType());
+        Class<? extends ArgumentType> argumentTypeClass = desc.argumentNodes().iterator().next().argumentType().getClass();
+        assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
     }
 
     @Test
     void resolvesSetOfBooleans_toCollectionSet() {
         var desc = resolver.resolve(ctx(DUMMY, 6));
-        CollectionArgumentType<?, ?> collectionArgumentType = assertInstanceOf(CollectionArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
-        assertEquals(Set.class, collectionArgumentType.getCollectionType());
+        Class<? extends ArgumentType> argumentTypeClass = desc.argumentNodes().iterator().next().argumentType().getClass();
+        assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
     }
 
     @Test

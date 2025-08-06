@@ -41,7 +41,11 @@ public final class ArgumentBindings {
 
                 CommandPattern command = ctx.command();
                 CommandPatternToken latestToken = command.getTokenAt(command.size() - 1);
-                if (ctx.parameterIndex() == ctx.method().getParameterCount() - 1 && !latestToken.isLiteral()) { return StringAssembler.greedyString(); }
+                if (
+                        ctx.parameterIndex() == ctx.method().getParameterCount() - 1
+                     && !latestToken.isLiteral()
+                     && ctx.parameter().getParameterizedType() instanceof Class<?>
+                ) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
@@ -90,6 +94,6 @@ public final class ArgumentBindings {
 
     @SuppressWarnings("unchecked")
     public static Collection<ArgumentBinding<Object, ?>> all() {
-        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?>>) (Class<?>) ArgumentBindings.class);
+        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?>>) (Class<?>) ArgumentBinding.class);
     }
 }

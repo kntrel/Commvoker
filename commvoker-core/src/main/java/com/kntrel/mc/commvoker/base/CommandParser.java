@@ -116,7 +116,7 @@ class CommandParser<S> {
         }
 
         //Guard against too few explicit parameters
-        if (explicitArguments.size() > pattern.argumentCount()) {
+        if (explicitArguments.size() < pattern.argumentCount()) {
             throw new BadCommandMethodException(method,
                 "Too few explicit parameters. The command pattern expects a minimum of " + pattern.argumentCount() + " arguments, but the method declares " + explicitArguments.size() + " explicit parameters"
             );
@@ -161,6 +161,7 @@ class CommandParser<S> {
         }
 
         ArgumentBuilder<S, ?> curr = nodes.pollLast();
+        curr.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
         while (!nodes.isEmpty()) {
             ArgumentBuilder<S, ?> next = nodes.pollLast();
             next.then(curr);

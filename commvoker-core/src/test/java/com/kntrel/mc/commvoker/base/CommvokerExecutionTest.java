@@ -10,6 +10,7 @@ import com.kntrel.util.Priority;
 import com.mojang.brigadier.context.CommandContext;
 import org.junit.jupiter.api.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -34,6 +35,8 @@ class CommvokerExecutionTest {
         /* greedy‑string capture */
         volatile String echoed = null;
 
+        List<String> list = null;
+
         @Command("ping")
         public void ping() {                       // -> /ping
             pingCalled.set(true);
@@ -52,6 +55,11 @@ class CommvokerExecutionTest {
         @Command("say {msg}")
         public void say(String msg) {              // -> /say <msg...>  (greedy)
             echoed = msg;
+        }
+
+        @Command("names {name_list}")
+        public void setNames(List<String> names) {              // -> /say <msg...>  (greedy)
+            this.list = names;
         }
     }
 
@@ -123,6 +131,19 @@ class CommvokerExecutionTest {
 
         assertEquals("the cake is a lie", holder.echoed,
                 "Greedy string did not consume entire remainder");
+    }
+
+    @Test
+    void listArgument() {
+        assertNull(holder.list);
+
+        /* Note the spaces – everything after 'say ' becomes one String */
+        assertDoesNotThrow(() -> commvoker.execute("names [john, mike, sarah]", SRC));
+        assertNotNull(holder.list);
+        assertEquals(3, holder.list.size());
+        assertEquals("john", holder.list.get(0));
+        assertEquals("mike", holder.list.get(1));
+        assertEquals("sarah", holder.list.get(2));
     }
 
     @Test void contextualArgumentTypes() {

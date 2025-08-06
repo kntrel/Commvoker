@@ -8,6 +8,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.BiFunction;
 
 public class ArgumentDescriptorAssembler<S, T> implements ComposedAssembler<S, T> {
@@ -19,7 +20,7 @@ public class ArgumentDescriptorAssembler<S, T> implements ComposedAssembler<S, T
 
 
     //FIELDS
-    private final Collection<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates_;
+    private final List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates_;
     private final BiFunction<CommandContext<? extends S>, Object[], T> contextualizer_;
 
 
@@ -38,7 +39,7 @@ public class ArgumentDescriptorAssembler<S, T> implements ComposedAssembler<S, T
 
     //IMPLEMENTATION
     @Override
-    public Collection<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
+    public List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
         return this.delegates_;
     }
     @Override
