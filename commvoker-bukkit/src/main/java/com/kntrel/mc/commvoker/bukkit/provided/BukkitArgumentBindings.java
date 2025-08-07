@@ -14,6 +14,7 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -92,7 +93,7 @@ public class BukkitArgumentBindings {
                     Type arg = pt.getActualTypeArguments()[0];
                     return (arg instanceof Class<?> ac) && Entity.class.isAssignableFrom(ac);
                 })
-                .withPriority(Priority.LOW)
+                .withPriority(Priority.HIGH)
                 .bind(),
         SENDER_ENTITY = argumentAssembler(EntityAssembler::senderEntity)
                 .toClass(Entity.class)
@@ -132,6 +133,10 @@ public class BukkitArgumentBindings {
         COMMAND_CONTEXT = argumentAssembler(CommandContextAssembler::commandContext)
                 .toClass((Class<CommandContext<CommandSender>>) (Class<?>) CommandContext.class)
                 .toCondition(ctx -> ctx.type() instanceof ParameterizedType pt && pt.getActualTypeArguments()[0] instanceof Class<?> c && c.equals(CommandSender.class))
+                .bind(),
+        BOUNDING_BOX = argumentAssembler(BoundingBoxAssembler::boundingBox)
+                .toClass(BoundingBox.class)
+                .withPriority(Priority.LOW)
                 .bind();
 
 
