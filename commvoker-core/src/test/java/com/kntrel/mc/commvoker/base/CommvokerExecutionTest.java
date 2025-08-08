@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.annotation.Command;
+import com.kntrel.mc.commvoker.command.Command;
+import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.TransformAssembler;
@@ -60,6 +61,20 @@ class CommvokerExecutionTest {
         @Command("names {name_list}")
         public void setNames(List<String> names) {              // -> /say <msg...>  (greedy)
             this.list = names;
+        }
+    }
+
+    @Command("root")
+    public static class RootCommand {
+        String a, b, c;
+
+        @Command(value = "{a} {b}", extend = true)
+        public void root1(String a, @NotGreedy String b) {
+            this.a = a; this.b = b;
+        }
+        @Command(value = "{a} {b} {c}", extend = true)
+        public void root2(String a, String b, String c) {
+            this.a = a; this.b = b; this.c = c;
         }
     }
 
@@ -132,6 +147,22 @@ class CommvokerExecutionTest {
         assertEquals("the cake is a lie", holder.echoed,
                 "Greedy string did not consume entire remainder");
     }
+
+    @Test
+    void overlappingArguments() {
+        RootCommand cmnd = new RootCommand();
+        this.commvoker.register(cmnd);
+
+        assertDoesNotThrow(() -> this.commvoker.execute("root a1 b2", SRC));
+        assertEquals("a1", cmnd.a);
+        assertEquals("b2", cmnd.b);
+
+        assertDoesNotThrow(() -> this.commvoker.execute("root a3 b4 c5", SRC));
+        assertEquals("a3", cmnd.a);
+        assertEquals("b4", cmnd.b);
+        assertEquals("c5", cmnd.c);
+    }
+
 
     @Test
     void listArgument() {

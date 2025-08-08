@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.annotation;
+package com.kntrel.mc.commvoker.command;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
