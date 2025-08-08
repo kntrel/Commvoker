@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.annotation.Command;
+import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
 import com.mojang.brigadier.CommandDispatcher;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +61,14 @@ public class CommvokerTest {
 
         @Command
         public void subCommand(String bar, String arg2, String arg3) { }
+    }
+
+    @Command("root")
+    public static class RootCommand {
+        @Command(value = "{a} {b}", extend = true)
+        public void root1(String a, String b) {}
+        @Command(value = "{a} {b} {c}", extend = true)
+        public void root2(String a, String b, String c) {}
     }
 
     /* --------------------------------------------------------------------- */
@@ -137,6 +145,16 @@ public class CommvokerTest {
         CommandDispatcher<Object> d = commvoker.getCommandDispatcher();
         assertHasUsage(d, "snake_case <loreim> <ipsum>");
         assertHasUsage(d, "snake_case <loreim> <ipsum> sub_command <arg3>");
+
+    }
+
+    @Test
+    void overlappingArguments() {
+        commvoker.register(new RootCommand());
+
+        CommandDispatcher<Object> d = commvoker.getCommandDispatcher();
+        assertHasUsage(d, "root <a> <b>");
+        assertHasUsage(d, "root <a> <b> <c>");
 
     }
 
