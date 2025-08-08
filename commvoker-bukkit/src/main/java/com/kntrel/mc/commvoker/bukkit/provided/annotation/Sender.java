@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.bukkit.annotation;
+package com.kntrel.mc.commvoker.bukkit.provided.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

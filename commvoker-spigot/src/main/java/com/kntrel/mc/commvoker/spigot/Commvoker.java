@@ -24,7 +24,6 @@ public class Commvoker extends BukkitCommvoker {
     }
 
     @Override public void register(LiteralArgumentBuilder<CommandSender> tree) {
-        this.commandMap_.register(tree.getLiteral(), this.bukkitCommand_);
         super.register(tree);
     }
 
