@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.annotation;
+package com.kntrel.mc.commvoker.provided.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,4 +7,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
-public @interface Word {}
+public @interface Size {
+    int value();
+}
