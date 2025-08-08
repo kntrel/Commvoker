@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.annotation.Command;
+import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.ArgumentRegistry;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;

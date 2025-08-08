@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.mc.commvoker.annotation.Command;
+import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.mock.GroupAssembler;
 import com.kntrel.mc.commvoker.mock.Group;

@@ -1,6 +1,10 @@
 package com.kntrel.mc.commvoker.provided;
 
-import com.kntrel.mc.commvoker.annotation.Word;
+import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
+import com.kntrel.mc.commvoker.provided.annotations.Max;
+import com.kntrel.mc.commvoker.provided.annotations.Min;
+import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
+import com.kntrel.mc.commvoker.provided.annotations.Word;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.assembler.ArgumentDescriptorAssembler;
 import com.kntrel.mc.commvoker.assembler.Assembler;
@@ -12,10 +16,13 @@ import com.kntrel.util.Constants;
 import com.kntrel.util.Priority;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
 
 public final class ArgumentBindings {
+    private ArgumentBindings() {}
 
     private static final Set<Class<?>> PRIMITIVES = Set.of(boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class);
     private static Class<?> boxed(Class<?> primitive) {
@@ -30,8 +37,18 @@ public final class ArgumentBindings {
         }
         return Integer.class;
     }
+    private static <T extends Number, A extends Assembler<?, T>> A rangeNumber(
+            BiFunction<T, T, A> builder,
+            Function<Double, T> translator,
+            T min,
+            T max,
+            ArgumentGatherer<?> context
+    ) {
+        if (context.isAnnotationPresent(Min.class)) { min = translator.apply(context.getAnnotation(Min.class).value()); }
+        if (context.isAnnotationPresent(Max.class)) { max = translator.apply(context.getAnnotation(Max.class).value()); }
+        return builder.apply(min, max);
+    }
 
-    private ArgumentBindings() {}
 
     public static final ArgumentBinding<Object, ?>
         STRING = argumentAssembler(ctx -> {
@@ -43,21 +60,40 @@ public final class ArgumentBindings {
                         ctx.parameterIndex() == ctx.method().getParameterCount() - 1
                      && !latestToken.isLiteral()
                      && ctx.parameter().getParameterizedType() instanceof Class<?>
+                     && !ctx.isAnnotationPresent(NotGreedy.class)
                 ) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
             .withPriority(Priority.LOW)
             .bind(),
-        INTEGER = argumentAssembler(() -> IntegerAssembler.integer())
+        INTEGER = argumentAssembler(ctx -> rangeNumber(
+                IntegerAssembler::integer,
+                Double::intValue,
+                Integer.MIN_VALUE,
+                Integer.MAX_VALUE,
+                ctx
+            ))
             .toClass(Integer.class)
             .withPriority(Priority.LOW)
             .bind(),
-        LONG = argumentAssembler(() -> LongAssembler.longArg())
+        LONG = argumentAssembler(ctx -> rangeNumber(
+                LongAssembler::longArg,
+                Double::longValue,
+                Long.MIN_VALUE,
+                Long.MAX_VALUE,
+                ctx
+            ))
             .toClass(Long.class)
             .withPriority(Priority.LOW)
             .bind(),
-        DOUBLE = argumentAssembler(() -> DoubleAssembler.doubleArg())
+        DOUBLE = argumentAssembler(ctx -> rangeNumber(
+                DoubleAssembler::doubleArg,
+                Function.identity(),
+                Double.MIN_VALUE,
+                Double.MAX_VALUE,
+                ctx
+            ))
             .toClass(Double.class)
             .withPriority(Priority.LOW)
             .bind(),
@@ -73,28 +109,28 @@ public final class ArgumentBindings {
             .withPriority(Priority.LOW)
             .bind(),
         LIST = argumentAssembler(ctx -> {
-                    ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
-                    ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
-                    return (Assembler<Object, List<?>>) (Assembler<?, ?>) CollectionAssembler.listOf(Assembler.ofArgumentDescriptor(descriptor));
-                })
-                .toClass((Class<List<?>>) (Class) List.class)
-                .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
-                .bind(),
+                ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
+                ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
+                return (Assembler<Object, List<?>>) (Assembler<?, ?>) CollectionAssembler.listOf(Assembler.ofArgumentDescriptor(descriptor));
+            })
+            .toClass((Class<List<?>>) (Class) List.class)
+            .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
+            .bind(),
         SET = argumentAssembler(ctx -> {
-                    ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
-                    ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
-                    return (Assembler<Object, Set<?>>) (Assembler<?, ?>) CollectionAssembler.setOf(Assembler.ofArgumentDescriptor(descriptor));
-                })
-                .toClass((Class<Set<?>>) (Class) Set.class)
-                .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
-                .bind(),
+                ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
+                ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
+                return (Assembler<Object, Set<?>>) (Assembler<?, ?>) CollectionAssembler.setOf(Assembler.ofArgumentDescriptor(descriptor));
+            })
+            .toClass((Class<Set<?>>) (Class) Set.class)
+            .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
+            .bind(),
         ARRAY = argumentAssembler(ctx -> {
-                    Class<?> type = ((Class<?>) ctx.type()).componentType();
-                    ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
-                    return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<?, Object>) Assembler.ofArgumentDescriptor(descriptor));
-                })
-                .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
-                .bind();
+                Class<?> type = ((Class<?>) ctx.type()).componentType();
+                ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
+                return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<?, Object>) Assembler.ofArgumentDescriptor(descriptor));
+            })
+            .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
+            .bind();
 
 
     @SuppressWarnings("unchecked")

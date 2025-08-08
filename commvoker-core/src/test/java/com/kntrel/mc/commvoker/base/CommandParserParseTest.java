@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.annotation.Command;
+import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.assembler.ImplicitAssembler;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;

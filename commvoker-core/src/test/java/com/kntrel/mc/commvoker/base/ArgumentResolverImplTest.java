@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.annotation.Word;
+import com.kntrel.mc.commvoker.provided.annotations.Word;
 import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
