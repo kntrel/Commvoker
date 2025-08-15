@@ -41,7 +41,7 @@ public class WorldAssembler implements ComposedAssembler<CommandSender, World> {
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> delegates() {
+    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> composedOf() {
         if (this.implicit_) { return Collections.emptyList(); }
         return List.of(new SimplePair<>(StringAssembler.word(), this::getSuggestions));
     }

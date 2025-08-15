@@ -1,5 +1,7 @@
 package com.kntrel.mc.commvoker.argument;
 
+import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
+
 import java.util.Arrays;
 import java.util.Collection;
 

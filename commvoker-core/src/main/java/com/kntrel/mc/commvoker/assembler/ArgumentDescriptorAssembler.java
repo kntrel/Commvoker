@@ -1,13 +1,12 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.descriptor.ArgumentNode;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentNode;
 import com.kntrel.util.tuple.Pair;
 import com.kntrel.util.tuple.impl.SimplePair;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
 
@@ -27,7 +26,7 @@ public class ArgumentDescriptorAssembler<S, T> implements ComposedAssembler<S, T
     //CONSTRUCTOR
     private ArgumentDescriptorAssembler(ArgumentDescriptor<S, T> argumentDescriptor) {
         this.delegates_ = new ArrayList<>();
-        for (ArgumentNode<? super S, ?> node : argumentDescriptor.argumentNodes()) {
+        for (ArgumentNode<? super S, ?> node : argumentDescriptor.argumentTrees()) {
             Assembler<? super S, ?> assembler = Assembler.ofArgumentType(node.argumentType());
             SuggestionProvider<? super S> suggestionProvider = node.suggestionProvider();
             Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>> pair = new SimplePair<>(assembler, suggestionProvider);
@@ -39,7 +38,7 @@ public class ArgumentDescriptorAssembler<S, T> implements ComposedAssembler<S, T
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
+    public List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> composedOf() {
         return this.delegates_;
     }
     @Override

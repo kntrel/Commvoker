@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.argument;
+package com.kntrel.mc.commvoker.argument.context;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;

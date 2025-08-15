@@ -1,10 +1,10 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
-import com.kntrel.mc.commvoker.assembler.EndAssembler;
+import com.kntrel.mc.commvoker.assembler.ArgumentTypeAssembler;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
-public class StringAssembler implements EndAssembler<String> {
+public class StringAssembler implements ArgumentTypeAssembler<String> {
 
     //FACTORY
     public static StringAssembler string() {

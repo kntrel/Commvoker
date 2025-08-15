@@ -1,10 +1,10 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
-import com.kntrel.mc.commvoker.assembler.EndAssembler;
+import com.kntrel.mc.commvoker.assembler.ArgumentTypeAssembler;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 
-public class FloatAssembler implements EndAssembler<Float> {
+public class FloatAssembler implements ArgumentTypeAssembler<Float> {
 
     //FACTORY
     public static FloatAssembler floatArg() {

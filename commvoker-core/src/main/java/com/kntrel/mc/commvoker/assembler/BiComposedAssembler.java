@@ -1,12 +1,10 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.util.tuple.Pair;
-import com.kntrel.util.tuple.impl.SimplePair;
+import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T> {
@@ -31,18 +29,18 @@ public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T>
     }
 
     @Override
-    default List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
-        SuggestionProvider<? super S> firstProvider = this::getFirstSuggestions,
-                                      secondProvider = this::getSecondSuggestions;
-        return List.of(
-                new SimplePair<>(this.firstDelegate(), this.firstSuggests() ? firstProvider : null),
-                new SimplePair<>(this.secondDelegate(), this.secondSuggests() ? secondProvider : null)
-        );
+    default void composedOf(AssemblerHook<S> hook) {
+        SuggestionProvider<S> firstProvider = this::getFirstSuggestions,
+                              secondProvider = this::getSecondSuggestions;
+
+        var h = hook.hook("dep1", this.firstDelegate());
+        if (this.firstSuggests()) { h.suggests(firstProvider); }
+        h = hook.hook("dep2", this.secondDelegate());
+        if (this.secondSuggests()) { h.suggests(secondProvider); }
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T compose(CommandContext<? extends S> ctx, Object[] objects) {
-        return this.compose(ctx, (A) objects[0], (B) objects[1]);
+    default T compose(CommandContext<? extends S> ctx, Components components) {
+        return this.compose(ctx, (A) components.get("dep1"), (B) components.get("dep2"));
     }
-
 }

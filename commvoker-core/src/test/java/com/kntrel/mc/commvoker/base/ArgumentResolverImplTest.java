@@ -1,7 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.provided.annotations.Word;
-import com.kntrel.mc.commvoker.argument.ArgumentContext;
+import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
 import com.kntrel.mc.commvoker.assembler.Assembler;
@@ -90,53 +90,53 @@ class ArgumentResolverImplTest {
     @Test
     void resolvesPlainString_toStringArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 0));
-        StringArgumentType stringArgumentType = assertInstanceOf(StringArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
+        StringArgumentType stringArgumentType = assertInstanceOf(StringArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
         assertNotEquals(stringArgumentType.getType(), StringArgumentType.StringType.GREEDY_PHRASE);
     }
 
     @Test
     void resolvesWordAnnotatedString_toWordArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 1));
-        StringArgumentType stringArgumentType = assertInstanceOf(StringArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
+        StringArgumentType stringArgumentType = assertInstanceOf(StringArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
         assertEquals(StringArgumentType.StringType.SINGLE_WORD, stringArgumentType.getType());
     }
 
     @Test
     void resolvesPrimitiveInt_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 2));
-        assertInstanceOf(IntegerArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
+        assertInstanceOf(IntegerArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
     }
 
     @Test
     void resolvesBoxedInteger_viaINTEGERBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 3));
-        assertInstanceOf(IntegerArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
+        assertInstanceOf(IntegerArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
     }
 
     @Test
     void resolvesPrimitiveDouble_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 4));
-        assertInstanceOf(DoubleArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
+        assertInstanceOf(DoubleArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
     }
 
     @Test @SuppressWarnings("rawtypes")
     void resolvesListOfIntegers_toCollectionList() {
         var desc = resolver.resolve(ctx(DUMMY, 5));
-        Class<? extends ArgumentType> argumentTypeClass = desc.argumentNodes().iterator().next().argumentType().getClass();
+        Class<? extends ArgumentType> argumentTypeClass = desc.argumentTrees().iterator().next().argumentType().getClass();
         assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
     }
 
     @Test
     void resolvesSetOfBooleans_toCollectionSet() {
         var desc = resolver.resolve(ctx(DUMMY, 6));
-        Class<? extends ArgumentType> argumentTypeClass = desc.argumentNodes().iterator().next().argumentType().getClass();
+        Class<? extends ArgumentType> argumentTypeClass = desc.argumentTrees().iterator().next().argumentType().getClass();
         assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
     }
 
     @Test
     void lastStringTokenBecomesGreedy() {
         var desc = resolver.resolve(ctx(DUMMY, 7));
-        StringArgumentType stringArgumentType =  assertInstanceOf(StringArgumentType.class, desc.argumentNodes().iterator().next().argumentType());
+        StringArgumentType stringArgumentType =  assertInstanceOf(StringArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
         assertEquals(StringArgumentType.StringType.GREEDY_PHRASE, stringArgumentType.getType());
     }
 
@@ -154,7 +154,7 @@ class ArgumentResolverImplTest {
         ArgumentContext ctx = ctx(DUMMY, 0);
         var desc = resolver.resolve(ctx); // plain String param again
         ArgumentGatherer<Object> gatherer = new ArgumentGatherer<>(ctx, resolver, new PriorityQueue<>());
-        assertSame(artType, desc.argumentNodes().iterator().next().argumentType());
+        assertSame(artType, desc.argumentTrees().iterator().next().argumentType());
     }
 
     @Test

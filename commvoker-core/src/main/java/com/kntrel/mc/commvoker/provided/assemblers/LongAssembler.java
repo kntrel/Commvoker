@@ -1,10 +1,10 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
-import com.kntrel.mc.commvoker.assembler.EndAssembler;
+import com.kntrel.mc.commvoker.assembler.ArgumentTypeAssembler;
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 
-public class LongAssembler implements EndAssembler<Long> {
+public class LongAssembler implements ArgumentTypeAssembler<Long> {
 
     //FACTORY
     public static LongAssembler longArg() {

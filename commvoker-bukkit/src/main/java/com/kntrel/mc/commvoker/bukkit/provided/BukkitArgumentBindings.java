@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.bukkit.provided;
 
-import com.kntrel.mc.commvoker.argument.ArgumentBinding;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.bukkit.provided.annotation.Sender;

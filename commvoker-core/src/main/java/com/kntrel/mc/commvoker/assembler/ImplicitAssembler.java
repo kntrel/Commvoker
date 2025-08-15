@@ -15,7 +15,7 @@ public interface ImplicitAssembler<S, T> extends ComposedAssembler<S, T>, Functi
     }
 
     @Override
-    default List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
+    default List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> composedOf() {
         return Collections.emptyList();
     }
 

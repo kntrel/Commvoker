@@ -30,7 +30,7 @@ public class VectorAssembler implements ComposedAssembler<CommandSender, Vector>
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> delegates() {
+    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> composedOf() {
         return List.of(new SimplePair<>(Assembler.ofArgumentType(Vec3Argument.vec3()), null));
     }
     @Override

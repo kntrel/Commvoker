@@ -49,7 +49,7 @@ public class LocationAssembler implements ComposedAssembler<CommandSender, Locat
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> delegates() {
+    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> composedOf() {
         List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> out = new ArrayList<>(2);
         if (this.vectorAssembler_ != null) {
             out.add(new SimplePair<>(this.vectorAssembler_, null));
