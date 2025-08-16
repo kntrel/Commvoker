@@ -124,6 +124,6 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
         if (binding == null) {
             throw new NoSuchArgumentBindingException(ctx);
         }
-        return (Function<CommandContext<? extends S>, ?>) binding.implyer();
+        return (Function<CommandContext<? extends S>, ?>) (Function<?, ?>) binding.implyer();
     }
 }

@@ -66,7 +66,7 @@ public class ArgumentBinder<S, T> {
 
 
     //BUILD
-    public ArgumentBinding<S, T> bind() {
+    public ArgumentBinding<S, ?, T> bind() {
         Priority priority = (this.priority_ != null) ? this.priority_ : Priority.NORMAL;
 
         return new AssemblerArgumentBinding<>(
