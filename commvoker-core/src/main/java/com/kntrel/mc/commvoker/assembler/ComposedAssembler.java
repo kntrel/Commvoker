@@ -6,7 +6,4 @@ import com.mojang.brigadier.context.CommandContext;
 public non-sealed interface ComposedAssembler<S, T> extends Assembler<S, T> {
 
     void composedOf(AssemblerHook<S> hooK);
-
-    @SuppressWarnings("unchecked")
-    T compose(CommandContext<? extends S> ctx, Components components);
 }

@@ -30,7 +30,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T compose(CommandContext<? extends S> ctx, Components components) {
+    default T contextualize(CommandContext<? extends S> ctx, Components components) {
         return this.compose(ctx, (I) components.get("dep"));
     }
 }
