@@ -1,6 +1,8 @@
 package com.kntrel.mc.commvoker.provided;
 
 import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
+import com.kntrel.mc.commvoker.command.CommandDefinition;
+import com.kntrel.mc.commvoker.command.CommandToken;
 import com.kntrel.mc.commvoker.provided.annotations.Max;
 import com.kntrel.mc.commvoker.provided.annotations.Min;
 import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
@@ -53,15 +55,8 @@ public final class ArgumentBindings {
     public static final ArgumentBinding<Object, ?>
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
-
-                CommandPattern command = ctx.command();
-                CommandPatternToken latestToken = command.getTokenAt(command.size() - 1);
-                if (
-                        ctx.parameterIndex() == ctx.method().getParameterCount() - 1
-                     && !latestToken.isLiteral()
-                     && ctx.parameter().getParameterizedType() instanceof Class<?>
-                     && !ctx.isAnnotationPresent(NotGreedy.class)
-                ) { return StringAssembler.greedyString(); }
+                if (!(ctx.parameter().getType().equals(String.class))) { return StringAssembler.string(); }
+                if (ctx.commandTokenIndex() == ctx.command().size() - 1) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
@@ -127,7 +122,7 @@ public final class ArgumentBindings {
         ARRAY = argumentAssembler(ctx -> {
                 Class<?> type = ((Class<?>) ctx.type()).componentType();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
-                return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<?, Object>) Assembler.ofArgumentDescriptor(descriptor));
+                return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<Object, Object>) Assembler.ofArgumentDescriptor(descriptor));
             })
             .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
             .bind();
