@@ -47,7 +47,7 @@ public sealed abstract class CommandTemplate<S> {
 
         //SETTERS
         public void rename(String newLabel) { this.label_ = newLabel; }
-        public void addChild(CommandTemplate.Node<S> child) { this.children_.add(child); }
+        public void addChild(CommandTemplate<S> child) { this.children_.add(child); }
 
         //GETTERS
         public String label() { return this.label_; }

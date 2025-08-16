@@ -19,7 +19,7 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
 
     @Override
     public CommandTemplate.Node<S> argumentTrees() {
-        return this.treeGate(new HashMap<>()).root();
+        return this.treeGate().root();
     }
 
     @Override
@@ -27,6 +27,9 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
         return this;
     }
 
+    public TreeGate<S> treeGate() {
+        return this.treeGate(new HashMap<>());
+    }
 
     protected abstract TreeGate<S> treeGate(Map<String, AtomicInteger> argCount);
 
@@ -119,16 +122,18 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
             while (!dfs.isEmpty()) {
                 CommandTemplate.Node<S> n = dfs.pollLast();
                 String label = n.label();
-                if (labels.contains(label)) {
-                    throw new IllegalStateException("Template has more that one node under the label '" + label + "'");
+
+                if (n instanceof CommandTemplate.Argument<S>) {
+                    if (labels.contains(label)) {
+                        throw new IllegalStateException("Template has more that one argument under the label '" + label + "'");
+                    }
+                    labels.add(label);
+
+                    AtomicInteger count = argCount.computeIfAbsent(label, l -> new AtomicInteger(0));
+                    int c = count.getAndIncrement();
+                    if (c > 0) { n.rename(label + c); }
+                    this.argMap_.put(label, n.label());
                 }
-                labels.add(label);
-
-                AtomicInteger count = argCount.computeIfAbsent(label,l -> new AtomicInteger(0));
-                int c = count.getAndIncrement();
-                if (c > 0) { n.rename(label + c); }
-                this.argMap_.put(label, n.label());
-
                 if (n.children().isEmpty()) {
                     leaves.add(n);
                 } else for (CommandTemplate<S> child : n.children()) switch (child) {
@@ -155,6 +160,6 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
         }
     }
 
-    protected record TreeGate<S>(CommandTemplate.Node<S> root, Collection<CommandTemplate.Node<S>> leaves) {}
+    public record TreeGate<S>(CommandTemplate.Node<S> root, Collection<CommandTemplate.Node<S>> leaves) {}
 
 }
