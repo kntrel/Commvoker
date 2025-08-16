@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.argument.binder;
 
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
+import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;

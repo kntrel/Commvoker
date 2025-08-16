@@ -1,18 +1,13 @@
 package com.kntrel.mc.commvoker.provided;
 
-import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
-import com.kntrel.mc.commvoker.command.CommandDefinition;
-import com.kntrel.mc.commvoker.command.CommandToken;
+import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.provided.annotations.Max;
 import com.kntrel.mc.commvoker.provided.annotations.Min;
-import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
 import com.kntrel.mc.commvoker.provided.annotations.Word;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.assembler.ArgumentDescriptorAssembler;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
-import com.kntrel.mc.commvoker.command.CommandPattern;
-import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.provided.assemblers.*;
 import com.kntrel.util.Constants;
 import com.kntrel.util.Priority;
@@ -52,7 +47,7 @@ public final class ArgumentBindings {
     }
 
 
-    public static final ArgumentBinding<Object, ?>
+    public static final ArgumentBinding<Object, ?, ?>
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
                 if (!(ctx.parameter().getType().equals(String.class))) { return StringAssembler.string(); }
@@ -129,7 +124,7 @@ public final class ArgumentBindings {
 
 
     @SuppressWarnings("unchecked")
-    public static Collection<ArgumentBinding<Object, ?>> all() {
-        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?>>) (Class<?>) ArgumentBinding.class);
+    public static Collection<ArgumentBinding<Object, ?, ?>> all() {
+        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?, ?>>) (Class<?>) ArgumentBinding.class);
     }
 }
