@@ -16,8 +16,8 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> collectionOf(Assembler<S, T> element, int min, int max, Function<Collection<T>, C> composer) {
         return new CollectionAssembler<>(min, max, element, composer);
     }
-    public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> collectionOf(Assembler<S, T> element, Function<Collection<T>, C> composer) {
-        return collectionOf(element, 0, 8, composer);
+    public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> collectionOf(Assembler<S, T> element, int max, Function<Collection<T>, C> composer) {
+        return collectionOf(element, 0, max, composer);
     }
     public static <S, T> CollectionAssembler<S, T, List<T>> listOf(Assembler<S, T> element, int min, int max) {
         return collectionOf(element, min, max, List::copyOf);
@@ -25,11 +25,17 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     public static <S, T> CollectionAssembler<S, T, List<T>> listOf(Assembler<S, T> element, int max) {
         return listOf(element, 0, max);
     }
+    public static <S, T> CollectionAssembler<S, T, List<T>> listOf(Assembler<S, T> element) {
+        return listOf(element, 0, 8);
+    }
     public static <S, T> CollectionAssembler<S, T, Set<T>> setOf(Assembler<S, T> element, int min, int max) {
         return collectionOf(element, min, max, Set::copyOf);
     }
     public static <S, T> CollectionAssembler<S, T, Set<T>> setOf(Assembler<S, T> element, int max) {
         return setOf(element, 0, max);
+    }
+    public static <S, T> CollectionAssembler<S, T, Set<T>> setOf(Assembler<S, T> element) {
+        return setOf(element, 0, 8);
     }
 
 
@@ -108,7 +114,7 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     @Override
     public C contextualize(CommandContext<? extends S> context, Components components) {
         List<T> list = new ArrayList<>(this.max_);
-        outer : for (int i = 0; i <= this.max_; i++) {
+        outer : for (int i = 0; i < this.max_; i++) {
             Map<String, Object> compMap = new HashMap<>();
             for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
                 Object o = components.get(entry.getValue());
@@ -132,10 +138,12 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
 
         while (!stack.isEmpty()) switch (stack.pollLast()) {
             case CommandTemplate.Node<?> n -> {
-                String old = n.label();
-                String rename = renamer.apply(old);
-                n.rename(rename);
-                namesMap.put(old, rename);
+                if (n instanceof CommandTemplate.Argument<?>) {
+                    String old = n.label();
+                    String rename = renamer.apply(old);
+                    n.rename(rename);
+                    namesMap.put(old, rename);
+                }
                 for (CommandTemplate<?> c : n.children()) { stack.addLast(c); }
             }
             case CommandTemplate.Forward<?> f -> forwards.add(f);
