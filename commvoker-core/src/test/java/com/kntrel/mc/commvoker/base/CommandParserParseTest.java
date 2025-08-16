@@ -2,7 +2,6 @@ package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
-import com.kntrel.mc.commvoker.assembler.ImplicitAssembler;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
@@ -13,7 +12,6 @@ import com.mojang.brigadier.tree.CommandNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestReporter;
 import java.lang.reflect.Method;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static com.mojang.brigadier.builder.LiteralArgumentBuilder.*;
 import static com.mojang.brigadier.builder.RequiredArgumentBuilder.*;
@@ -73,7 +71,7 @@ public class CommandParserParseTest {
     public CommandParserParseTest() {
         ArgumentResolverImpl<Object> resolver = new ArgumentResolverImpl<>();
         ArgumentBindings.all().forEach(resolver::register);
-        resolver.register(ArgumentBinder.argumentAssembler(() -> (ImplicitAssembler<Object, Object>) CommandContext::getSource)
+        resolver.register(ArgumentBinder.<Object, Object>implicit(CommandContext::getSource)
                 .toAnnotation(MockImplicit.class)
                 .toClass(Object.class)
                 .bind());
