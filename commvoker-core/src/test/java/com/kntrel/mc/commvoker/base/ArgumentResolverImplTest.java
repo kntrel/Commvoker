@@ -1,12 +1,12 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
+import com.kntrel.mc.commvoker.command.CommandDefinition;
+import com.kntrel.mc.commvoker.command.CommandToken;
 import com.kntrel.mc.commvoker.provided.annotations.Word;
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
-import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
 import com.kntrel.mc.commvoker.assembler.Assembler;
-import com.kntrel.mc.commvoker.command.CommandPattern;
-import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.Priority;
@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,15 +44,15 @@ class ArgumentResolverImplTest {
     ) {}
 
     /** Build a minimal CommandDefinition `<plain> <word> <int> <box> <dbl> <list> <set> <greedyString>` */
-    private static final CommandPattern CMD_DEF = new CommandPattern(new CommandPatternToken[]{
-            CommandPatternToken.argument("plain"),
-            CommandPatternToken.argument("word"),
-            CommandPatternToken.argument("prim"),
-            CommandPatternToken.argument("boxed"),
-            CommandPatternToken.argument("dbl"),
-            CommandPatternToken.argument("list"),
-            CommandPatternToken.argument("set"),
-            CommandPatternToken.argument("greedy")
+    private static final CommandDefinition CMD_DEF = new CommandDefinition(new CommandToken[]{
+            CommandToken.argument("plain"),
+            CommandToken.argument("word"),
+            CommandToken.argument("prim"),
+            CommandToken.argument("boxed"),
+            CommandToken.argument("dbl"),
+            CommandToken.argument("list"),
+            CommandToken.argument("set"),
+            CommandToken.argument("greedy")
     });
 
     /** Convenience for building an ArgumentContext for the given parameter index. */
@@ -64,7 +63,8 @@ class ArgumentResolverImplTest {
                 p.getParameterizedType(),
                 m,
                 paramIdx,
-                CMD_DEF
+                CMD_DEF,
+                paramIdx
         );
     }
 
@@ -90,71 +90,71 @@ class ArgumentResolverImplTest {
     @Test
     void resolvesPlainString_toStringArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 0));
-        StringArgumentType stringArgumentType = assertInstanceOf(StringArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
         assertNotEquals(stringArgumentType.getType(), StringArgumentType.StringType.GREEDY_PHRASE);
     }
 
     @Test
     void resolvesWordAnnotatedString_toWordArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 1));
-        StringArgumentType stringArgumentType = assertInstanceOf(StringArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
         assertEquals(StringArgumentType.StringType.SINGLE_WORD, stringArgumentType.getType());
     }
 
     @Test
     void resolvesPrimitiveInt_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 2));
-        assertInstanceOf(IntegerArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
     }
 
     @Test
     void resolvesBoxedInteger_viaINTEGERBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 3));
-        assertInstanceOf(IntegerArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
     }
 
     @Test
     void resolvesPrimitiveDouble_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 4));
-        assertInstanceOf(DoubleArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
+        assertArgumentTypeNode(DoubleArgumentType.class, desc.argumentTrees());
     }
 
     @Test @SuppressWarnings("rawtypes")
     void resolvesListOfIntegers_toCollectionList() {
         var desc = resolver.resolve(ctx(DUMMY, 5));
-        Class<? extends ArgumentType> argumentTypeClass = desc.argumentTrees().iterator().next().argumentType().getClass();
+        Class<? extends ArgumentType> argumentTypeClass = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees()).getClass();
         assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
     }
 
-    @Test
+    @Test @SuppressWarnings("rawtypes")
     void resolvesSetOfBooleans_toCollectionSet() {
         var desc = resolver.resolve(ctx(DUMMY, 6));
-        Class<? extends ArgumentType> argumentTypeClass = desc.argumentTrees().iterator().next().argumentType().getClass();
+        Class<? extends ArgumentType> argumentTypeClass = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees()).getClass();
         assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
     }
 
     @Test
     void lastStringTokenBecomesGreedy() {
         var desc = resolver.resolve(ctx(DUMMY, 7));
-        StringArgumentType stringArgumentType =  assertInstanceOf(StringArgumentType.class, desc.argumentTrees().iterator().next().argumentType());
+        StringArgumentType stringArgumentType =  assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
         assertEquals(StringArgumentType.StringType.GREEDY_PHRASE, stringArgumentType.getType());
     }
 
     @Test
     void higherPriorityBindingWins() {
         // custom binding: map String.class to literal "OVERRIDE"
-        StringArgumentType artType = StringArgumentType.word();
+        StringArgumentType overwrite = StringArgumentType.word();
 
-        var override = ArgumentBinder.argumentAssembler(() -> Assembler.ofArgumentType(artType))
+        var override = ArgumentBinder.argumentAssembler(() -> Assembler.ofArgumentType(overwrite))
                 .toClass(String.class)
                 .withPriority(Priority.HIGH)
                 .bind();
         resolver.register(override);
 
         ArgumentContext ctx = ctx(DUMMY, 0);
-        var desc = resolver.resolve(ctx); // plain String param again
-        ArgumentGatherer<Object> gatherer = new ArgumentGatherer<>(ctx, resolver, new PriorityQueue<>());
-        assertSame(artType, desc.argumentTrees().iterator().next().argumentType());
+        var desc = resolver.resolve(ctx);
+        ArgumentType<?> argType = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees());
+        assertSame(overwrite, argType);
     }
 
     @Test
@@ -165,7 +165,8 @@ class ArgumentResolverImplTest {
                 UUID.class,
                 m,
                 0,
-                new CommandPattern(new CommandPatternToken[]{ CommandPatternToken.argument("uuid") })
+                new CommandDefinition(new CommandToken[]{ CommandToken.argument("uuid") }),
+                0
         );
         assertThrows(NoSuchArgumentBindingException.class,
                 () -> resolver.resolve(badCtx));
@@ -173,4 +174,10 @@ class ArgumentResolverImplTest {
 
     // helper for the above test
     @SuppressWarnings("unused") private void noBinding(UUID id) {}
+
+    private static <T extends ArgumentType<?>> T assertArgumentTypeNode(Class<T> argumentTypeClass, CommandTemplate<?> tmpl) {
+        CommandTemplate.Node<?> node = assertInstanceOf(CommandTemplate.Node.class, tmpl);
+        CommandTemplate.Argument<?> arg = assertInstanceOf(CommandTemplate.Argument.class, node);
+        return assertInstanceOf(argumentTypeClass, arg.argumentType());
+    }
 }
