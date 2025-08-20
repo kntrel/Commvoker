@@ -6,6 +6,7 @@ import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.assembler.EndAssembler;
+import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.*;
 import java.util.function.Function;
@@ -68,11 +69,13 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
         this.composer_ = composer;
 
         this.delegates_ = new Delegate[this.max_];
+        CommandTemplate.Node<S> tree = CompiledAssembler.of(this.delegate_).argumentTrees();
         for (int i = 0; i < this.max_; i++) {
-            CompiledAssembler.TreeGate<?> tree = CompiledAssembler.of(this.delegate_).treeGate();
+            CommandTemplate.Node<S> clone = tree.clone();
             final int index = i;
-            Map<String, String> namesMap = renameTree(tree.root(), s -> s + index);
-            this.delegates_[i] = new Delegate(tree, namesMap);
+            var cloneResult = renameTree(clone, s -> s + index);
+            CompiledAssembler.TreeGate<S> treeGate = new CompiledAssembler.TreeGate<>(clone, cloneResult.first());
+            this.delegates_[i] = new Delegate<>(treeGate, cloneResult.second());
         }
     }
 
@@ -83,14 +86,14 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
         CommandTemplate.Node<S> root = rootTree.root();
         if (this.max_ < 2) { return root; }
 
-        CompiledAssembler.TreeGate<S> lastTree = this.delegates_[0].tree();
+        CompiledAssembler.TreeGate<S> lastTree = this.delegates_[this.max_ - 1].tree();
         CommandTemplate.Node<S> last = lastTree.root();
         CommandTemplate.Node<S> andNode = CommandTemplate.<S>beginLiteral("and").end();
         andNode.addChild(last);
 
         Collection<CommandTemplate.Node<S>> upstream = rootTree.leaves();
-        for (int i = 1; i <= this.max_; i++) {
-            if (i == this.max_) {
+        for (int i = 1; i < this.max_; i++) {
+            if (i == (this.max_ - 1)) {
                 upstream.forEach(n -> n.addChild(andNode));
                 break;
             }
@@ -118,7 +121,7 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
             Map<String, Object> compMap = new HashMap<>();
             for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
                 Object o = components.get(entry.getValue());
-                if (o == null) { break outer; }
+                if (o == null) { continue outer; }
                 compMap.put(entry.getKey(), o);
             }
 
@@ -130,27 +133,30 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     }
 
 
-    private static Map<String, String> renameTree(CommandTemplate<?> root, Function<String, String> renamer) {
-        Deque<CommandTemplate<?>> stack = new ArrayDeque<>();
+    private static <S> Pair<Collection<CommandTemplate.Node<S>>, Map<String, String>> renameTree(CommandTemplate<S> root, Function<String, String> renamer) {
+        Deque<CommandTemplate<S>> stack = new ArrayDeque<>();
         stack.add(root);
-        List<CommandTemplate.Forward<?>> forwards = new ArrayList<>();
+        List<CommandTemplate.Forward<S>> forwards = new ArrayList<>();
         Map<String, String> namesMap = new HashMap<>();
+        List<CommandTemplate.Node<S>> leaves = new ArrayList<>();
 
         while (!stack.isEmpty()) switch (stack.pollLast()) {
-            case CommandTemplate.Node<?> n -> {
+            case CommandTemplate.Node<S> n -> {
                 if (n instanceof CommandTemplate.Argument<?>) {
                     String old = n.label();
                     String rename = renamer.apply(old);
                     n.rename(rename);
                     namesMap.put(old, rename);
                 }
-                for (CommandTemplate<?> c : n.children()) { stack.addLast(c); }
+                if (n.children().isEmpty()) {
+                    leaves.add(n);
+                } else for (CommandTemplate<S> c : n.children()) { stack.addLast(c); }
             }
-            case CommandTemplate.Forward<?> f -> forwards.add(f);
+            case CommandTemplate.Forward<S> f -> forwards.add(f);
         }
 
         forwards.forEach(f -> f.reforward(namesMap.get(f.forwardsTo())));
 
-        return namesMap;
+        return Pair.of(leaves, namesMap);
     }
 }

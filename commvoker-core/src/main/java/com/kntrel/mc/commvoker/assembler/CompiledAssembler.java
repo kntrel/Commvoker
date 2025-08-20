@@ -152,10 +152,12 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
 
         @Override
         public T contextualize(CommandContext<? extends S> ctx, Components components) {
-            Map<String, Object> compMap = this.argMap_.entrySet().stream().collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    e -> components.get(e.getValue())
-            ));
+            Map<String, Object> compMap = this.argMap_.entrySet().stream()
+                    .filter(e -> components.has(e.getValue()))
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            e -> components.get(e.getValue())
+                    ));
             return this.assembler_.contextualize(ctx, new Components(compMap));
         }
     }

@@ -5,6 +5,7 @@ import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,10 +33,13 @@ class ArgumentParser<S> {
 
     //UTIL
     Object parse(CommandContext<? extends S> ctx) {
-        Map<String, Object> compMap = this.namesMap_.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getValue,
-                e -> ctx.getArgument(e.getKey(), Object.class)
-        ));
+        Map<String, Object> compMap = new HashMap<>();
+
+        for (var e : this.namesMap_.entrySet()) try {
+            Object o = ctx.getArgument(e.getKey(), Object.class);
+            compMap.put(e.getValue(), o);
+        } catch (IllegalArgumentException ignored) {}
+
         return this.contextualizer_.contextualize(ctx, new Components(compMap));
     }
 }

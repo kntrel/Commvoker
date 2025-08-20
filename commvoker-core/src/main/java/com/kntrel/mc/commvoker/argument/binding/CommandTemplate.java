@@ -19,20 +19,26 @@ public sealed abstract class CommandTemplate<S> {
     }
 
 
+    @Override public abstract CommandTemplate<S> clone();
+
 
     public static final class Forward<S> extends CommandTemplate<S> {
 
         //FIELDS
         private String forward_;
+        private int occurrence_;
 
         //CONSTRUCTOR
-        private Forward(String forward) { this.forward_ = forward; }
+        private Forward(String forward, int occurrence) { this.forward_ = forward; this.occurrence_ = occurrence; }
+        private Forward(String forward) { this(forward, 0); }
 
         //SETTERS
         public void reforward(String newForward) { this.forward_ = newForward; }
 
         //GETTERS
         public String forwardsTo() { return this.forward_; }
+        public int occurrence() { return this.occurrence_; }
+        @Override public Forward<S> clone() { return new Forward<>(this.forward_); }
     }
 
     public static sealed abstract class Node<S> extends CommandTemplate<S> permits Literal, Argument {
@@ -54,11 +60,18 @@ public sealed abstract class CommandTemplate<S> {
         public Predicate<S> requirement() { return this.requirement_; }
         public List<CommandTemplate<S>> children() { return this.children_; }
         void setRequirement(Predicate<S> requirement) { this.requirement_ = requirement; }
+        @Override public abstract Node<S> clone();
     }
 
     public static final class Literal<S> extends Node<S> {
         //CONSTRUCTOR
         private Literal(String label) { super(label); }
+
+        @Override public Literal<S> clone() {
+            Literal<S> clone = new Literal<>(this.label());
+            for (CommandTemplate<S> c : this.children_) { clone.addChild(c.clone()); }
+            return clone;
+        }
     }
 
     public static final class Argument<S> extends Node<S> {
@@ -73,6 +86,11 @@ public sealed abstract class CommandTemplate<S> {
 
         //GETTERS
         public ArgumentType<?> argumentType() { return this.arg_; }
+        @Override public Argument<S> clone() {
+            Argument<S> clone = new Argument<>(this.label(), this.arg_);
+            for (CommandTemplate<S> c : this.children_) { clone.addChild(c.clone()); }
+            return clone;
+        }
     }
 
 
@@ -81,6 +99,7 @@ public sealed abstract class CommandTemplate<S> {
         Ongoing<S> literal(String label);
         Ongoing<S> argument(String label, ArgumentType<?> argumentType);
         Ongoing<S> requires(Predicate<S> requirement);
+        Terminated<S> then(String label, int occurrence);
         Terminated<S> then(String label);
         Terminated<S> split(CommandTemplate<S>... branches);
         Node<S> end();
@@ -119,9 +138,12 @@ public sealed abstract class CommandTemplate<S> {
             return this;
         }
 
-        @Override public Terminated<S> then(String label) {
-            this.cursor_.children_.add(new Forward<S>(label));
+        @Override public Terminated<S> then(String label, int occurrence) {
+            this.cursor_.children_.add(new Forward<S>(label, occurrence));
             return this;
+        }
+        @Override public Terminated<S> then(String label) {
+            return this.then(label, 0);
         }
 
         @Override public Node<S> end() { return root_; }

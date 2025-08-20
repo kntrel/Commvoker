@@ -34,4 +34,7 @@ public class Components {
         this.map_.putAll(other.map_);
         return this;
     }
+    public boolean has(String key) {
+        return this.map_.containsKey(key);
+    }
 }
