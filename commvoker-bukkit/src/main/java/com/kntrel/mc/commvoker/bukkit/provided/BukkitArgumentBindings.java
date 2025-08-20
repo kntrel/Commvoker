@@ -21,36 +21,38 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
 
 public class BukkitArgumentBindings {
 
 
-    public static final ArgumentBinding<? super CommandSender, ?>
+    public static final ArgumentBinding<? super CommandSender, ?, ?>
         WORLD = argumentAssembler(WorldAssembler::world)
             .toClass(World.class)
             .withPriority(Priority.LOW)
             .bind(),
-        SENDER_WORLD = argumentAssembler(WorldAssembler::senderWorld)
+        SENDER_WORLD = implicit(ctx -> ((Entity) ctx.getSource()).getWorld())
             .toClass(World.class)
             .toAnnotation(Sender.class)
+            .requires(s -> s instanceof Entity)
             .withPriority(Priority.above(WORLD.priority()))
             .bind(),
         VECTOR = argumentAssembler(VectorAssembler::vector)
             .toClass(Vector.class)
             .withPriority(Priority.LOW)
             .bind(),
-        LOCATION = argumentAssembler(LocationAssembler::location)
+        LOCATION = ArgumentBinder.<CommandSender, Location>argumentAssembler(ctx -> ctx.isAnnotationPresent(SenderWorld.class)
+                    ? LocationAssembler.locationInferredWorld()
+                    : LocationAssembler.location()
+            )
             .toClass(Location.class)
             .withPriority(Priority.LOW)
             .bind(),
-        SENDER_LOCATION = ArgumentBinder.<CommandSender, Location>argumentAssembler(ctx -> ctx.isAnnotationPresent(Sender.class)
-                ? LocationAssembler.senderLocation()
-                : LocationAssembler.locationInferredWorld()
-            )
+        SENDER_LOCATION = implicit(ctx -> ((Entity) ctx.getSource()).getLocation())
             .toClass(Location.class)
-            .toCondition(ctx -> ctx.isAnnotationPresent(Sender.class) || ctx.isAnnotationPresent(SenderWorld.class))
+            .toAnnotation(Sender.class)
             .requires(s -> s instanceof Entity)
             .withPriority(Priority.above(LOCATION.priority()))
             .bind(),
@@ -95,9 +97,10 @@ public class BukkitArgumentBindings {
                 })
                 .withPriority(Priority.HIGH)
                 .bind(),
-        SENDER_ENTITY = argumentAssembler(EntityAssembler::senderEntity)
+        SENDER_ENTITY = implicit(ctx -> (Entity) ctx.getSource())
                 .toClass(Entity.class)
                 .toAnnotation(Sender.class)
+                .requires(s -> s instanceof Entity)
                 .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.equals(Entity.class))
                 .withPriority(Priority.above(ENTITY.priority()))
                 .bind(),
@@ -122,15 +125,16 @@ public class BukkitArgumentBindings {
                 })
                 .withPriority(Priority.above(ENTITIES.priority()))
                 .bind(),
-        SENDER_PLAYER = argumentAssembler(EntityAssembler::senderPlayer)
+        SENDER_PLAYER = implicit(ctx -> (Player) ctx.getSource())
                 .toClass(Player.class)
                 .toAnnotation(Sender.class)
+                .requires(s -> s instanceof Player)
                 .withPriority(Priority.above(SENDER_ENTITY.priority()))
                 .bind(),
-        COMMAND_SENDER = argumentAssembler(CommandSenderAssembler::commandSender)
+        COMMAND_SENDER = ArgumentBinder.<CommandSender, CommandSender>implicit(CommandContext::getSource)
                 .toClass(CommandSender.class)
                 .bind(),
-        COMMAND_CONTEXT = argumentAssembler(CommandContextAssembler::commandContext)
+        COMMAND_CONTEXT = ArgumentBinder.<CommandSender, CommandContext<CommandSender>>implicit(ctx -> (CommandContext<CommandSender>) ctx)
                 .toClass((Class<CommandContext<CommandSender>>) (Class<?>) CommandContext.class)
                 .toCondition(ctx -> ctx.type() instanceof ParameterizedType pt && pt.getActualTypeArguments()[0] instanceof Class<?> c && c.equals(CommandSender.class))
                 .bind(),
@@ -141,7 +145,7 @@ public class BukkitArgumentBindings {
 
 
     @SuppressWarnings("unchecked")
-    public static Collection<ArgumentBinding<? super CommandSender, ?>> all() {
-        return Constants.getAll(BukkitArgumentBindings.class, (Class<ArgumentBinding<? super CommandSender,?>>) (Class<?>) ArgumentBinding.class);
+    public static Collection<ArgumentBinding<? super CommandSender, ?, ?>> all() {
+        return Constants.getAll(BukkitArgumentBindings.class, (Class<ArgumentBinding<? super CommandSender, ?, ?>>) (Class<?>) ArgumentBinding.class);
     }
 }

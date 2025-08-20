@@ -1,18 +1,15 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
+import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
-import com.kntrel.util.tuple.Pair;
-import com.kntrel.util.tuple.impl.SimplePair;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
-import java.util.ArrayList;
-import java.util.List;
 
 public class LocationAssembler implements ComposedAssembler<CommandSender, Location> {
 
@@ -23,9 +20,6 @@ public class LocationAssembler implements ComposedAssembler<CommandSender, Locat
     }
     public static LocationAssembler locationInferredWorld() {
         return new LocationAssembler(VectorAssembler.vector());
-    }
-    public static LocationAssembler senderLocation() {
-        return new LocationAssembler();
     }
 
 
@@ -49,35 +43,29 @@ public class LocationAssembler implements ComposedAssembler<CommandSender, Locat
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> composedOf() {
-        List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> out = new ArrayList<>(2);
+    public void composedOf(AssemblerHook<CommandSender> hooK) {
         if (this.vectorAssembler_ != null) {
-            out.add(new SimplePair<>(this.vectorAssembler_, null));
+            hooK.hook("vecArg", this.vectorAssembler_);
         }
         if (this.worldAssembler_ != null) {
-            out.add(new SimplePair<>(this.worldAssembler_, null));
+            hooK.hook("worldArg", this.worldAssembler_);
         }
-        return out;
     }
+
     @Override
-    public Location compose(CommandContext<? extends CommandSender> ctx, Object[] objects) {
+    public Location contextualize(CommandContext<? extends CommandSender> ctx, Components components) {
         CommandSender sender = ctx.getSource();
 
-        if (objects.length < 1) {
-            if (sender instanceof Entity e) {
-                return e.getLocation();
-            }
-            return new Location(sender.getServer().getWorlds().iterator().next(), 0, 0, 0);
-        }
-
-        Vector v = (Vector) objects[0];
+        Vector v = components.get("vecArg", Vector.class);
         World w = null;
-        if (objects.length > 1) {
-            w = (World) objects[1];
+        if (components.has("worldArg")) {
+            w = components.get("worldArg", World.class);
         } else if (sender instanceof Entity e) {
             w = e.getWorld();
         }
 
         return new Location(w, v.getX(), v.getY(), v.getZ());
     }
+
+
 }
