@@ -1,14 +1,12 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
-
+import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.assembler.Assembler;
+import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
 import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.kntrel.mc.commvoker.bukkit.internal.CraftBukkitAccessors;
-import com.kntrel.util.tuple.Pair;
-import com.kntrel.util.tuple.impl.SimplePair;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
@@ -16,7 +14,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,9 +38,6 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
     public static Assembler<CommandSender, Player> requiredPlayer() {
         return requiredEntity(Player.class);
     }
-    public static Assembler<CommandSender, Player> senderPlayer() {
-        return new RequiredAssembler<>(new OptionalAssembler<>(new EntityAssembler<>(Player.class, Type.IMPLICIT)));
-    }
     public static EntityAssembler<Entity> entities() {
         return entities(Entity.class);
     }
@@ -53,14 +47,10 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
     public static Assembler<CommandSender, Entity> requiredEntity() {
         return requiredEntity(Entity.class);
     }
-    public static Assembler<CommandSender, Entity> senderEntity() {
-        return new RequiredAssembler<>(new OptionalAssembler<>(new EntityAssembler<>(Entity.class, Type.IMPLICIT)));
-    }
-
 
 
     //INTERNAL
-    private enum Type { IMPLICIT, SINGLE, PLURAL };
+    private enum Type { SINGLE, PLURAL };
     private static class OptionalAssembler<S, T, C extends Collection<T>> implements TransformAssembler<S, C, Optional<T>> {
 
         //FIELDS
@@ -120,25 +110,21 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> composedOf() {
-        if (this.type_.equals(Type.IMPLICIT)) { return Collections.emptyList(); }
-
+    public void composedOf(AssemblerHook<CommandSender> hooK) {
         EntityArgument entityArgument;
         if (this.entityType_.equals(Player.class)) {
             entityArgument = this.type_.equals(Type.SINGLE) ? EntityArgument.player() : EntityArgument.players();
         } else {
             entityArgument = this.type_.equals(Type.SINGLE) ? EntityArgument.entity() : EntityArgument.entities();
         }
-        return List.of(new SimplePair<>(Assembler.ofArgumentType(entityArgument), null));
+        hooK.hook("entityArg", Assembler.ofArgumentType(entityArgument));
     }
-    @Override @SuppressWarnings("unchecked")
-    public List<E> compose(CommandContext<? extends CommandSender> ctx, Object[] objects) {
-        CommandSender sender = ctx.getSource();
-        if (this.type_.equals(Type.IMPLICIT)) {
-            return List.of((E) sender);
-        }
 
-        EntitySelector selector = (EntitySelector) objects[0];
+    @Override @SuppressWarnings("unchecked")
+    public List<E> contextualize(CommandContext<? extends CommandSender> ctx, Components components) {
+        CommandSender sender = ctx.getSource();
+
+        EntitySelector selector = components.get("entityArg", EntitySelector.class);
         CommandSourceStack css = (CommandSourceStack) CraftBukkitAccessors.getCommandSourceStack(sender);
         List<? extends net.minecraft.world.entity.Entity> serverEntities;
         try {
