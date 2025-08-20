@@ -22,13 +22,12 @@ class NameSupplerImpl implements NameSupplier {
 
     //IMPLEMENTATION
     @Override public String supply(String key) {
-        String out = null;
+        String out;
         if (this.cursor_ < this.names_.length) {
             out = this.names_[this.cursor_++];
         } else {
-            out = this.names_[this.names_.length - 1] + (this.cursor_++ - this.names_.length);
+            out = this.names_[this.names_.length - 1] + (++this.cursor_ - this.names_.length);
         }
-        out = key + "_" + out;
         this.namesMap_.put(out, key);
         return out;
     }

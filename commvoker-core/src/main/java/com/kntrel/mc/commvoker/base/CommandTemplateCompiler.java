@@ -121,6 +121,12 @@ final class CommandTemplateCompiler<S> {
             }
         }
 
+        // Build this node (literal or argument), apply requirement, then wire children/redirect/command
+        // Done before children recursion so a nameSupplier name is reserved before the children
+        ArgumentBuilder<S, ?> builder = (node instanceof CommandTemplate.Argument<? super S> arg)
+                ? RequiredArgumentBuilder.argument(this.nameSupplier.supply(node.label()), arg.argumentType())
+                : LiteralArgumentBuilder.literal(node.label());
+
         // Build normal children first (so we can attach CommandNode<S> instances)
         List<CommandNode<S>> builtChildren = children.stream().map(this::buildNode).toList();
 
@@ -146,11 +152,6 @@ final class CommandTemplateCompiler<S> {
             }
             redirectTarget = buildNode(target);
         }
-
-        // Build this node (literal or argument), apply requirement, then wire children/redirect/command
-        ArgumentBuilder<S, ?> builder = (node instanceof CommandTemplate.Argument<? super S> arg)
-                ? RequiredArgumentBuilder.argument(nameSupplier.supply(node.label()), arg.argumentType())
-                : LiteralArgumentBuilder.literal(node.label());
 
         Predicate<? super S> req = node.requirement();
         if (req != null) {
