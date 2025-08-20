@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.provided;
 
+import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.provided.annotations.Max;
 import com.kntrel.mc.commvoker.provided.annotations.Min;
@@ -121,6 +122,10 @@ public final class ArgumentBindings {
                 return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<Object, Object>) Assembler.ofArgumentDescriptor(descriptor));
             })
             .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
+            .bind(),
+        ENUM = ((Descriptive<Object, Enum>) argumentAssembler(ctx -> EnumAssembler.ofEnum((Class<Enum>) ctx.type())))
+            .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isEnum())
+            .withPriority(Priority.LOWER)
             .bind();
 
 
