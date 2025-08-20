@@ -3,6 +3,7 @@ package com.kntrel.mc.commvoker.provided.assemblers;
 
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.assembler.EndAssembler;
@@ -46,7 +47,7 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
 
     //FIELDS
     private final int min_, max_;
-    private final Assembler<S, T> delegate_;
+    private final Contextualizer<S, T> contextualizer_;
     private final Delegate<S>[] delegates_;
     private final Function<Collection<T>, C> composer_;
 
@@ -65,11 +66,12 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
 
         this.min_ = min;
         this.max_ = max;
-        this.delegate_ = delegate;
         this.composer_ = composer;
 
         this.delegates_ = new Delegate[this.max_];
-        CommandTemplate.Node<S> tree = CompiledAssembler.of(this.delegate_).argumentTrees();
+        CompiledAssembler<S, T> compiledAssembler = CompiledAssembler.of(delegate);
+        CommandTemplate.Node<S> tree = compiledAssembler.argumentTrees();
+        this.contextualizer_ = compiledAssembler.contextualizer();
         for (int i = 0; i < this.max_; i++) {
             CommandTemplate.Node<S> clone = tree.clone();
             final int index = i;
@@ -125,7 +127,7 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
                 compMap.put(entry.getKey(), o);
             }
 
-            T elm = this.delegate_.contextualize(context, new Components(compMap));
+            T elm = this.contextualizer_.contextualize(context, new Components(compMap));
             list.add(elm);
         }
 

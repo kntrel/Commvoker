@@ -187,7 +187,11 @@ class CommandParser<S> {
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));
         Iterator<CommandNode<S>> tail = head.getChildren().iterator();
-        if (tail.hasNext()) { root.then(tail.next()); }
+        if (tail.hasNext()) {
+            root.then(tail.next());
+        } else {
+            root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
+        }
         return root;
     }
 

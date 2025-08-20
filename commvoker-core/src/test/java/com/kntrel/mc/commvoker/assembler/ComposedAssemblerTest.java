@@ -71,7 +71,7 @@ public class ComposedAssemblerTest {
 
     @Test
     void doubleComposedArgument() {
-        assertHasUsage(this.commvoker.getCommandDispatcher(), "person set <person0> <person1>");
+        assertHasUsage(this.commvoker.getCommandDispatcher(), "person set <person> <person1>");
 
         assertDoesNotThrow(() -> this.commvoker.execute("person set Chespirito 98", this.src));
         assertNotNull(this.holder.person);
@@ -80,11 +80,10 @@ public class ComposedAssemblerTest {
 
     @Test
     void composedArgumentCollection() {
-        assertHasUsage(this.commvoker.getCommandDispatcher(), "person set many <persons>");
 
         Person[] people = new Person[] { new Person("Chespirito", 98), new Person("Don Ramón", 110), new Person("Gandalf", 100) };
 
-        assertDoesNotThrow(() -> this.commvoker.execute("person set many [Chespirito 98, \"Don Ramón\" 110, Gandalf 100]", this.src));
+        assertDoesNotThrow(() -> this.commvoker.execute("person set many Chespirito 98 \"Don Ramón\" 110 and Gandalf 100", this.src));
         assertNotNull(this.holder.people);
         assertEquals(3, this.holder.people.size());
         for (int i = 0; i < 3; i++) {
@@ -94,9 +93,7 @@ public class ComposedAssemblerTest {
 
     @Test
     void multiComposedGArgument() {
-        assertHasUsage(this.commvoker.getCommandDispatcher(), "group set <group0> <group1>");
-
-        assertDoesNotThrow(() -> this.commvoker.execute("group set Lokillos [Chespirito 98, \"Don Ramón\" 110, Gandalf 100]", this.src));
+        assertDoesNotThrow(() -> this.commvoker.execute("group set Lokillos Chespirito 98 \"Don Ramón\" 110 and Gandalf 100", this.src));
         assertNotNull(this.holder.group);
         assertEquals(3, this.holder.group.people().size());
         assertEquals("Lokillos", this.holder.group.name());
@@ -110,11 +107,9 @@ public class ComposedAssemblerTest {
 
     @Test
     void arrayArgument() {
-        assertHasUsage(this.commvoker.getCommandDispatcher(), "person set array <persons>");
-
         Person[] people = new Person[] { new Person("Chespirito", 98), new Person("Don Ramón", 110), new Person("Gandalf", 100) };
 
-        assertDoesNotThrow(() -> this.commvoker.execute("person set array [Chespirito 98, \"Don Ramón\" 110, Gandalf 100]", this.src));
+        assertDoesNotThrow(() -> this.commvoker.execute("person set array Chespirito 98 \"Don Ramón\" 110 and Gandalf 100", this.src));
         assertNotNull(this.holder.peopleArray);
         assertEquals(3, this.holder.peopleArray.length);
         for (int i = 0; i < 3; i++) {

@@ -10,10 +10,7 @@ import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.arguments.DoubleArgumentType;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
@@ -122,15 +119,13 @@ class ArgumentResolverImplTest {
     @Test @SuppressWarnings("rawtypes")
     void resolvesListOfIntegers_toCollectionList() {
         var desc = resolver.resolve(ctx(DUMMY, 5));
-        Class<? extends ArgumentType> argumentTypeClass = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees()).getClass();
-        assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
     }
 
     @Test @SuppressWarnings("rawtypes")
     void resolvesSetOfBooleans_toCollectionSet() {
         var desc = resolver.resolve(ctx(DUMMY, 6));
-        Class<? extends ArgumentType> argumentTypeClass = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees()).getClass();
-        assertEquals("CollectionArgumentType", argumentTypeClass.getSimpleName());
+        assertArgumentTypeNode(BoolArgumentType.class, desc.argumentTrees());
     }
 
     @Test

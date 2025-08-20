@@ -3,6 +3,7 @@ package com.kntrel.mc.commvoker.provided;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.provided.annotations.Max;
 import com.kntrel.mc.commvoker.provided.annotations.Min;
+import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
 import com.kntrel.mc.commvoker.provided.annotations.Word;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.assembler.ArgumentDescriptorAssembler;
@@ -51,7 +52,7 @@ public final class ArgumentBindings {
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
                 if (!(ctx.parameter().getType().equals(String.class))) { return StringAssembler.string(); }
-                if (ctx.commandTokenIndex() == ctx.command().size() - 1) { return StringAssembler.greedyString(); }
+                if (ctx.commandTokenIndex() == ctx.command().size() - 1 && !ctx.isAnnotationPresent(NotGreedy.class)) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
