@@ -1,7 +1,6 @@
 package com.kntrel.mc.commvoker.exception;
 
-import com.kntrel.mc.commvoker.argument.ArgumentContext;
-import com.kntrel.mc.commvoker.argument.ParameterContext;
+import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 
 import java.lang.reflect.Parameter;
 import java.util.Arrays;

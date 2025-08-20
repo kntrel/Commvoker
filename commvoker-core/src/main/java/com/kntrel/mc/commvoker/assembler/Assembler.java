@@ -1,15 +1,16 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
-import com.mojang.brigadier.StringReader;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
+import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import java.util.*;
+import com.mojang.brigadier.context.CommandContext;
 
-public sealed interface Assembler<S, T> permits EndAssembler, ComposedAssembler {
+public sealed interface Assembler<S, T> extends Contextualizer<S, T> permits EndAssembler, ComposedAssembler {
 
-    static <T> EndAssembler<T> ofArgumentType(ArgumentType<T> argumentType) {
-        return () -> argumentType;
+    static <T> EndAssembler<Object, T> ofArgumentType(ArgumentType<T> argumentType) {
+        return (ArgumentTypeAssembler<T>) () -> argumentType;
     }
 
     static <S, T> Assembler<S, T> ofArgumentDescriptor(ArgumentDescriptor<S, T> argumentDescriptor) {
@@ -17,37 +18,7 @@ public sealed interface Assembler<S, T> permits EndAssembler, ComposedAssembler 
     }
 
 
-    default boolean isImplicit() {
-        if (this instanceof ComposedAssembler<S,T> c) {
-            for (var i : c.delegates()) {
-                if (!i.first().isImplicit()) { return false; }
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    default Object[] parseRaw(StringReader reader) throws CommandSyntaxException {
-        List<Object> out = new ArrayList<>();
-        Deque<Assembler<? super S, ?>> stack = new ArrayDeque<>();
-        stack.addLast(this);
-
-        while (!stack.isEmpty()) {
-            switch (stack.pollLast()) {
-                case EndAssembler<?> end -> {
-                    reader.skipWhitespace();
-                    out.add(end.argumentType().parse(reader));
-                }
-                case ComposedAssembler<? super S, ?> comp -> {
-                    var delegates = comp.delegates();
-                    for (int i = delegates.size() - 1; i >= 0; i--) {
-                        stack.addLast(delegates.get(i).first());
-                    }
-                }
-            }
-        }
-
-        return out.toArray(Object[]::new);
+    default CompiledAssembler<S, T> compile() {
+        return CompiledAssembler.of(this);
     }
 }

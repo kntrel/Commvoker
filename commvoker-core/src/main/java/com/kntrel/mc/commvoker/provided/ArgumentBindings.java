@@ -1,16 +1,14 @@
 package com.kntrel.mc.commvoker.provided;
 
-import com.kntrel.mc.commvoker.argument.binder.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.provided.annotations.Max;
 import com.kntrel.mc.commvoker.provided.annotations.Min;
 import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
 import com.kntrel.mc.commvoker.provided.annotations.Word;
-import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.assembler.ArgumentDescriptorAssembler;
 import com.kntrel.mc.commvoker.assembler.Assembler;
-import com.kntrel.mc.commvoker.argument.ArgumentBinding;
-import com.kntrel.mc.commvoker.command.CommandPattern;
-import com.kntrel.mc.commvoker.command.CommandPatternToken;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.provided.assemblers.*;
 import com.kntrel.util.Constants;
 import com.kntrel.util.Priority;
@@ -50,18 +48,11 @@ public final class ArgumentBindings {
     }
 
 
-    public static final ArgumentBinding<Object, ?>
+    public static final ArgumentBinding<Object, ?, ?>
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
-
-                CommandPattern command = ctx.command();
-                CommandPatternToken latestToken = command.getTokenAt(command.size() - 1);
-                if (
-                        ctx.parameterIndex() == ctx.method().getParameterCount() - 1
-                     && !latestToken.isLiteral()
-                     && ctx.parameter().getParameterizedType() instanceof Class<?>
-                     && !ctx.isAnnotationPresent(NotGreedy.class)
-                ) { return StringAssembler.greedyString(); }
+                if (!(ctx.parameter().getType().equals(String.class))) { return StringAssembler.string(); }
+                if (ctx.commandTokenIndex() == ctx.command().size() - 1 && !ctx.isAnnotationPresent(NotGreedy.class)) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
@@ -127,14 +118,14 @@ public final class ArgumentBindings {
         ARRAY = argumentAssembler(ctx -> {
                 Class<?> type = ((Class<?>) ctx.type()).componentType();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
-                return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<?, Object>) Assembler.ofArgumentDescriptor(descriptor));
+                return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<Object, Object>) Assembler.ofArgumentDescriptor(descriptor));
             })
             .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
             .bind();
 
 
     @SuppressWarnings("unchecked")
-    public static Collection<ArgumentBinding<Object, ?>> all() {
-        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?>>) (Class<?>) ArgumentBinding.class);
+    public static Collection<ArgumentBinding<Object, ?, ?>> all() {
+        return Constants.getAll(ArgumentBindings.class, (Class<ArgumentBinding<Object, ?, ?>>) (Class<?>) ArgumentBinding.class);
     }
 }

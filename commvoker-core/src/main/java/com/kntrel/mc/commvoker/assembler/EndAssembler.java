@@ -1,20 +1,9 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.mojang.brigadier.StringReader;
-import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 
-public non-sealed interface EndAssembler<T> extends Assembler<Object, T>{
 
-    ArgumentType<? extends T> argumentType();
+public non-sealed interface EndAssembler<S, T> extends Assembler<S, T>{
 
-    @Override
-    default boolean isImplicit() {
-        return false;
-    }
-
-    @Override
-    default Object[] parseRaw(StringReader reader) throws CommandSyntaxException {
-        return new Object[]{ this.argumentType().parse(reader) };
-    }
+    CommandTemplate.Node<S> argumentTemplate();
 }

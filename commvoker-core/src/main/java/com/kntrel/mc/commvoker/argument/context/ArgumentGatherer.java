@@ -1,22 +1,19 @@
-package com.kntrel.mc.commvoker.argument.binder;
+package com.kntrel.mc.commvoker.argument.context;
 
-import com.kntrel.mc.commvoker.argument.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
-import com.kntrel.mc.commvoker.argument.ArgumentBinding;
-import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
-
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.function.Predicate;
 
 public class ArgumentGatherer<S> extends ArgumentContext {
 
     private final ArgumentResolver<S> argumentResolver_;
-    private final PriorityQueue<ArgumentBinding<? super S, ?>> alsoResolved_;
+    private final PriorityQueue<ArgumentBinding.Descriptive<? super S, ?>> alsoResolved_;
     private final Set<ArgumentDescriptor<? super S, ?>> gathered_;
 
-    public ArgumentGatherer(ArgumentContext delegate, ArgumentResolver<S> argumentResolver, PriorityQueue<ArgumentBinding<? super S, ?>> alsoResolved) {
+    public ArgumentGatherer(ArgumentContext delegate, ArgumentResolver<S> argumentResolver, PriorityQueue<ArgumentBinding.Descriptive<? super S, ?>> alsoResolved) {
         super(delegate);
         this.argumentResolver_ = argumentResolver;
         this.alsoResolved_ = alsoResolved;
@@ -28,14 +25,14 @@ public class ArgumentGatherer<S> extends ArgumentContext {
             return resolveNext();
         }
 
-        ArgumentContext newContext = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command());
+        ArgumentContext newContext = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command(), this.parameterIndex());
         ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(newContext);
         this.gathered_.add(descriptor);
         return descriptor;
     }
 
     public ArgumentDescriptor<? super S, ?> resolveNext() {
-        ArgumentBinding<? super S, ?> binding = this.alsoResolved_.poll();
+        ArgumentBinding.Descriptive<? super S, ?> binding = this.alsoResolved_.poll();
         if (binding == null) {
             throw new NoSuchArgumentBindingException(this);
         }
@@ -48,12 +45,5 @@ public class ArgumentGatherer<S> extends ArgumentContext {
 
     Collection<ArgumentDescriptor<? super S, ?>> getGathered() {
         return this.gathered_;
-    }
-
-    Collection<? extends Predicate<? super S>> getRequirements() {
-        return this.gathered_.stream()
-                .map(ArgumentDescriptor::requirement)
-                .filter(Objects::nonNull)
-                .toList();
     }
 }

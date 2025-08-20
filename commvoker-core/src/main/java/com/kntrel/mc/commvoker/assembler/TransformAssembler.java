@@ -1,13 +1,11 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.util.tuple.Pair;
-import com.kntrel.util.tuple.impl.SimplePair;
+import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, SuggestionProvider<S> {
@@ -21,8 +19,9 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     }
 
     @Override
-    default List<Pair<Assembler<? super S, ?>, SuggestionProvider<? super S>>> delegates() {
-        return List.of(new SimplePair<>(this.delegate(), this.suggests() ? this : null));
+    default void composedOf(AssemblerHook<S> hook) {
+        var h = hook.hook("dep", this.delegate());
+        if (this.suggests()) { h.suggests(this); }
     }
 
     @Override
@@ -31,7 +30,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T compose(CommandContext<? extends S> ctx, Object[] objects) {
-        return this.compose(ctx, (I) objects[0]);
+    default T contextualize(CommandContext<? extends S> ctx, Components components) {
+        return this.compose(ctx, (I) components.get("dep"));
     }
 }

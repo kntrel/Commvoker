@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static com.kntrel.mc.commvoker.test.Assertions.*;
 
 
 class CommvokerExecutionTest {
@@ -58,7 +59,7 @@ class CommvokerExecutionTest {
             echoed = msg;
         }
 
-        @Command("names {name_list}")
+        @Command("names {name}")
         public void setNames(List<String> names) {              // -> /say <msg...>  (greedy)
             this.list = names;
         }
@@ -168,8 +169,8 @@ class CommvokerExecutionTest {
     void listArgument() {
         assertNull(holder.list);
 
-        /* Note the spaces – everything after 'say ' becomes one String */
-        assertDoesNotThrow(() -> commvoker.execute("names [john, mike, sarah]", SRC));
+        assertHasUsage(commvoker.getCommandDispatcher(), "names <name> and <name7>");
+        assertDoesNotThrow(() -> commvoker.execute("names john mike and sarah", SRC));
         assertNotNull(holder.list);
         assertEquals(3, holder.list.size());
         assertEquals("john", holder.list.get(0));

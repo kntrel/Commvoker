@@ -120,7 +120,7 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
 
     //IMPLEMENTATION
     @Override
-    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> delegates() {
+    public List<Pair<Assembler<? super CommandSender, ?>, SuggestionProvider<? super CommandSender>>> composedOf() {
         if (this.type_.equals(Type.IMPLICIT)) { return Collections.emptyList(); }
 
         EntityArgument entityArgument;
