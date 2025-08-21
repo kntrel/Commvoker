@@ -2,6 +2,8 @@ package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -39,16 +41,20 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
 
         private final ComposedAssembler<S, T> assembler_;
         private final LinkedHashMap<String, CompiledAssembler<? super S, ?>> children_;
+        private final Map<String, SuggestionProvider<? extends S>> suggesters_;
 
         Composed(ComposedAssembler<S, T> assembler) {
             this.assembler_ = assembler;
             this.children_ = new LinkedHashMap<>();
+            this.suggesters_ = new HashMap<>();
 
             AssemblerHook<S> hook = new AssemblerHook<>();
             this.assembler_.composedOf(hook);
             hook.nodeMap().forEach((k, v) -> {
                 CompiledAssembler<? super S, ?> child = CompiledAssembler.of(v.assembler());
                 this.children_.put(k, child);
+                SuggestionProvider<? extends S> sug = v.suggester();
+                if (sug != null) { this.suggesters_.put(k, sug); }
             });
         }
 
@@ -74,11 +80,16 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
 
             CommandTemplate.Node<S> root = null;
             Collection<CommandTemplate.Node<S>> upstream = null;
-            for (CompiledAssembler<? super S, ?> child : this.children_.values()) {
+            for (var e : this.children_.entrySet()) {
+                CompiledAssembler<? super S, ?> child = e.getValue();
                 TreeGate<? super S> childTree = child.treeGate(argCount);
                 CommandTemplate.Node<? super S> cRoot = childTree.root();
                 if (root == null) {
                     root = (CommandTemplate.Node) cRoot;
+                }
+                if (cRoot instanceof CommandTemplate.Argument<? super S> arg) {
+                    SuggestionProvider<? extends S> sug = this.suggesters_.get(e.getKey());
+                    if (sug != null) { arg.setSuggestionProvider(sug); }
                 }
                 Collection<? extends CommandTemplate.Node<? super S>> cLeaves = childTree.leaves();
                 if (cLeaves.isEmpty()) {

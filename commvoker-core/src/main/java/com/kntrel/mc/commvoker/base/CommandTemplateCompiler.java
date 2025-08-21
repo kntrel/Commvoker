@@ -6,6 +6,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.CommandNode;
 import java.util.*;
 import java.util.function.Predicate;
@@ -154,9 +155,11 @@ final class CommandTemplateCompiler<S> {
         }
 
         Predicate<? super S> req = node.requirement();
-        if (req != null) {
-            // safe cast: brigadier requires Predicate<S>, template provides Predicate<? super S>
-            builder.requires((Predicate<S>) req);
+        if (req != null) { builder.requires((Predicate<S>) req); }
+
+        if (node instanceof CommandTemplate.Argument<? super S> arg) {
+            SuggestionProvider<? extends S> sug = ((CommandTemplate.Argument<S>) arg).suggestionProvider();
+            if (sug != null) { ((RequiredArgumentBuilder<S, ?>) builder).suggests((SuggestionProvider<S>) sug); }
         }
 
         final CommandNode<S> self;

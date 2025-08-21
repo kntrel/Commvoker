@@ -1,6 +1,8 @@
 package com.kntrel.mc.commvoker.argument.binding;
 
 import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +28,7 @@ public sealed abstract class CommandTemplate<S> {
 
         //FIELDS
         private String forward_;
-        private int occurrence_;
+        private final int occurrence_;
 
         //CONSTRUCTOR
         private Forward(String forward, int occurrence) { this.forward_ = forward; this.occurrence_ = occurrence; }
@@ -44,8 +46,8 @@ public sealed abstract class CommandTemplate<S> {
     public static sealed abstract class Node<S> extends CommandTemplate<S> permits Literal, Argument {
 
         //FIELDS
-        private String label_;
-        private Predicate<S> requirement_;
+        protected String label_;
+        protected Predicate<S> requirement_;
         protected final List<CommandTemplate<S>> children_ = new ArrayList<>();
 
         //CONSTRUCTOR
@@ -54,12 +56,12 @@ public sealed abstract class CommandTemplate<S> {
         //SETTERS
         public void rename(String newLabel) { this.label_ = newLabel; }
         public void addChild(CommandTemplate<S> child) { this.children_.add(child); }
+        public void setRequirement(Predicate<S> requirement) { this.requirement_ = requirement; }
 
         //GETTERS
         public String label() { return this.label_; }
         public Predicate<S> requirement() { return this.requirement_; }
         public List<CommandTemplate<S>> children() { return this.children_; }
-        void setRequirement(Predicate<S> requirement) { this.requirement_ = requirement; }
         @Override public abstract Node<S> clone();
     }
 
@@ -69,6 +71,7 @@ public sealed abstract class CommandTemplate<S> {
 
         @Override public Literal<S> clone() {
             Literal<S> clone = new Literal<>(this.label());
+            clone.requirement_ = this.requirement_;
             for (CommandTemplate<S> c : this.children_) { clone.addChild(c.clone()); }
             return clone;
         }
@@ -78,16 +81,24 @@ public sealed abstract class CommandTemplate<S> {
 
         //FIELDS
         private final ArgumentType<?> arg_;
+        private SuggestionProvider<? extends S> suggester_;
 
         //CONSTRUCTOR
         private Argument(String label, ArgumentType<?> argumentType) {
             super(label); this.arg_ = argumentType;
+            this.suggester_ = null;
         }
+
+        //SETTERS
+        public void setSuggestionProvider(SuggestionProvider<? extends S> suggester) { this.suggester_ = suggester; }
 
         //GETTERS
         public ArgumentType<?> argumentType() { return this.arg_; }
+        public SuggestionProvider<? extends S> suggestionProvider() { return this.suggester_; }
         @Override public Argument<S> clone() {
             Argument<S> clone = new Argument<>(this.label(), this.arg_);
+            clone.requirement_ = this.requirement_;
+            clone.suggester_ = this.suggester_;
             for (CommandTemplate<S> c : this.children_) { clone.addChild(c.clone()); }
             return clone;
         }
@@ -97,7 +108,7 @@ public sealed abstract class CommandTemplate<S> {
     //FLUENT CHAIN
     public interface Ongoing<S> {
         Ongoing<S> literal(String label);
-        Ongoing<S> argument(String label, ArgumentType<?> argumentType);
+        OngoingArgument<S> argument(String label, ArgumentType<?> argumentType);
         Ongoing<S> requires(Predicate<S> requirement);
         Terminated<S> then(String label, int occurrence);
         Terminated<S> then(String label);
@@ -105,11 +116,15 @@ public sealed abstract class CommandTemplate<S> {
         Node<S> end();
     }
 
+    public interface OngoingArgument<S> extends Ongoing<S> {
+        Ongoing<S> suggests(SuggestionProvider<S> suggester);
+    }
+
     public interface Terminated<S> {
         Node<S> end();
     }
 
-    private static final class Fluent<S> implements Ongoing<S>, Terminated<S>  {
+    private static final class Fluent<S> implements OngoingArgument<S>, Terminated<S>  {
         private final Node<S> root_;
         private Node<S> cursor_;
         private Fluent(Node<S> root) { this.root_ = root; this.cursor_ = root; }
@@ -121,7 +136,7 @@ public sealed abstract class CommandTemplate<S> {
             return this; // keep returning the same fluent root
         }
 
-        @Override public Ongoing<S> argument(String label, ArgumentType<?> argType) {
+        @Override public OngoingArgument<S> argument(String label, ArgumentType<?> argType) {
             var arg = new Argument<S>(label, argType);
             this.cursor_.children_.add(arg);
             this.cursor_ = arg;
@@ -135,6 +150,14 @@ public sealed abstract class CommandTemplate<S> {
 
         @Override public Ongoing<S> requires(Predicate<S> requirement) {
             this.cursor_.setRequirement(requirement);
+            return this;
+        }
+
+        @Override
+        public Ongoing<S> suggests(SuggestionProvider<S> suggester) {
+            if (this.cursor_ instanceof CommandTemplate.Argument<S> arg) {
+                arg.setSuggestionProvider(suggester);
+            }
             return this;
         }
 
