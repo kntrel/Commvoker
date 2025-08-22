@@ -178,8 +178,8 @@ class CommandParser<S> {
             ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i));
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
             CommandTreeGate<S> gate = (execution == null)
-                    ? CommandTemplateCompiler.compile(descriptor.argumentTrees(), nameSupplier)
-                    : CommandTemplateCompiler.compile(descriptor.argumentTrees(), nameSupplier, execution);
+                    ? CommandTemplateCompiler.compile(descriptor.template(), nameSupplier)
+                    : CommandTemplateCompiler.compile(descriptor.template(), nameSupplier, execution);
             upstream.forEach(n -> n.addChild(gate.root()));
             upstream = gate.leaves();
             argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor.contextualizer());

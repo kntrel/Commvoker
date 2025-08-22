@@ -87,51 +87,51 @@ class ArgumentResolverImplTest {
     @Test
     void resolvesPlainString_toStringArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 0));
-        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.template());
         assertNotEquals(stringArgumentType.getType(), StringArgumentType.StringType.GREEDY_PHRASE);
     }
 
     @Test
     void resolvesWordAnnotatedString_toWordArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 1));
-        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.template());
         assertEquals(StringArgumentType.StringType.SINGLE_WORD, stringArgumentType.getType());
     }
 
     @Test
     void resolvesPrimitiveInt_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 2));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.template());
     }
 
     @Test
     void resolvesBoxedInteger_viaINTEGERBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 3));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.template());
     }
 
     @Test
     void resolvesPrimitiveDouble_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 4));
-        assertArgumentTypeNode(DoubleArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(DoubleArgumentType.class, desc.template());
     }
 
     @Test @SuppressWarnings("rawtypes")
     void resolvesListOfIntegers_toCollectionList() {
         var desc = resolver.resolve(ctx(DUMMY, 5));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.template());
     }
 
     @Test @SuppressWarnings("rawtypes")
     void resolvesSetOfBooleans_toCollectionSet() {
         var desc = resolver.resolve(ctx(DUMMY, 6));
-        assertArgumentTypeNode(BoolArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(BoolArgumentType.class, desc.template());
     }
 
     @Test
     void lastStringTokenBecomesGreedy() {
         var desc = resolver.resolve(ctx(DUMMY, 7));
-        StringArgumentType stringArgumentType =  assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
+        StringArgumentType stringArgumentType =  assertArgumentTypeNode(StringArgumentType.class, desc.template());
         assertEquals(StringArgumentType.StringType.GREEDY_PHRASE, stringArgumentType.getType());
     }
 
@@ -148,7 +148,7 @@ class ArgumentResolverImplTest {
 
         ArgumentContext ctx = ctx(DUMMY, 0);
         var desc = resolver.resolve(ctx);
-        ArgumentType<?> argType = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees());
+        ArgumentType<?> argType = assertArgumentTypeNode(ArgumentType.class, desc.template());
         assertSame(overwrite, argType);
     }
 
