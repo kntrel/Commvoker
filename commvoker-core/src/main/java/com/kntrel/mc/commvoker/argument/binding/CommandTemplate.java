@@ -2,29 +2,89 @@ package com.kntrel.mc.commvoker.argument.binding;
 
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 
-public sealed abstract class CommandTemplate<S> {
+public class CommandTemplate<S> {
 
     //FACTORY
-    public static <S> Ongoing<S> beginLiteral(String label) {
+    public static <S> Ongoing<S> literal(String label) {
         var root = new Literal<S>(label);
         return new Fluent<>(root);
     }
-    public static <S> Ongoing<S> beginArgument(String label, ArgumentType<?> type) {
+    public static <S> Ongoing<S> argument(String label, ArgumentType<?> type) {
         var root = new Argument<S>(label, type);
         return new Fluent<>(root);
     }
+    public static <S> CommandTemplate<S> split(CommandTemplate.Node<S>... branches) {
+        return new CommandTemplate<>(Arrays.asList(branches));
+    }
+    public static <S> Forward<S> forward(String target) {
+        return new Forward<>(target);
+    }
+    public static <S> Exit<S> exitPoint() {
+        return Exit.instance();
+    }
 
 
-    @Override public abstract CommandTemplate<S> clone();
+    //FIELDS
+    private final Collection<Node<S>> trees_;
+    private final List<Node<S>> leaves_;
 
 
-    public static final class Forward<S> extends CommandTemplate<S> {
+    //CONSTRUCTOR
+    private CommandTemplate(Collection<Node<S>> trees) {
+        this.trees_ = trees;
+        this.leaves_ = this.trees_.stream()
+                .flatMap(t -> findExitPoints(t).stream())
+                .toList();
+    }
+
+
+    //GETTERS
+    public List<CommandTemplate.Node<S>> trees() { return List.copyOf(this.trees_); }
+    public List<CommandTemplate.Node<S>> exitPoints() {
+        return this.leaves_;
+    }
+
+    @Override public CommandTemplate<S> clone() {
+        return new CommandTemplate<>(this.trees_.stream().map(Node::clone).toList());
+    }
+
+
+    public static sealed abstract class Element<S> permits Forward, Node, Exit {
+        @Override public abstract Element<S> clone();
+    }
+
+
+    //HELPERS
+    private static <S> List<Node<S>> findExitPoints(Node<S> root) {
+        List<Node<S>> out = new ArrayList<>();
+        Deque<Node<S>> stack = new ArrayDeque<>();
+        stack.add(root);
+
+        while (!stack.isEmpty()) {
+            Node<S> node = stack.pollLast();
+            boolean exitPointed = false;
+            for (Element<S> child : node.children()) switch (child) {
+                case Node<S> n -> stack.addLast(n);
+                case Exit<S> e -> {
+                    if (!exitPointed) {
+                        exitPointed = true;
+                        out.add(node);
+                    }
+                }
+                default -> {}
+            }
+        }
+
+        return out;
+    }
+
+
+
+    /* --------------------------------------------------- INNER CLASSES ---------------------------------------------------------*/
+    public static final class Forward<S> extends Element<S> {
 
         //FIELDS
         private String forward_;
@@ -40,28 +100,44 @@ public sealed abstract class CommandTemplate<S> {
         //GETTERS
         public String forwardsTo() { return this.forward_; }
         public int occurrence() { return this.occurrence_; }
-        @Override public Forward<S> clone() { return new Forward<>(this.forward_); }
+        @Override public Forward<S> clone() { return new Forward<>(this.forward_, this.occurrence_); }
     }
 
-    public static sealed abstract class Node<S> extends CommandTemplate<S> permits Literal, Argument {
+    public static final class Exit<S> extends Element<S> {
+
+        @SuppressWarnings("rawtypes")
+        private static final Exit INSTANCE = new Exit();
+        @SuppressWarnings("unchecked")
+        private static <S> Exit<S> instance() {
+            return INSTANCE;
+        }
+
+        private Exit() {}
+
+        public Element<S> clone() {
+            return instance();
+        }
+    }
+
+    public static sealed abstract class Node<S> extends Element<S> permits Literal, Argument {
 
         //FIELDS
         protected String label_;
         protected Predicate<S> requirement_;
-        protected final List<CommandTemplate<S>> children_ = new ArrayList<>();
+        protected final List<CommandTemplate.Element<S>> children_ = new ArrayList<>();
 
         //CONSTRUCTOR
         private Node(String label) { this.label_ = label; }
 
         //SETTERS
         public void rename(String newLabel) { this.label_ = newLabel; }
-        public void addChild(CommandTemplate<S> child) { this.children_.add(child); }
+        public void addChild(CommandTemplate.Element<S> child) { this.children_.add(child); }
         public void setRequirement(Predicate<S> requirement) { this.requirement_ = requirement; }
 
         //GETTERS
         public String label() { return this.label_; }
         public Predicate<S> requirement() { return this.requirement_; }
-        public List<CommandTemplate<S>> children() { return this.children_; }
+        public List<CommandTemplate.Element<S>> children() { return this.children_; }
         @Override public abstract Node<S> clone();
     }
 
@@ -72,7 +148,7 @@ public sealed abstract class CommandTemplate<S> {
         @Override public Literal<S> clone() {
             Literal<S> clone = new Literal<>(this.label());
             clone.requirement_ = this.requirement_;
-            for (CommandTemplate<S> c : this.children_) { clone.addChild(c.clone()); }
+            for (CommandTemplate.Element<S> c : this.children_) { clone.addChild(c.clone()); }
             return clone;
         }
     }
@@ -99,7 +175,7 @@ public sealed abstract class CommandTemplate<S> {
             Argument<S> clone = new Argument<>(this.label(), this.arg_);
             clone.requirement_ = this.requirement_;
             clone.suggester_ = this.suggester_;
-            for (CommandTemplate<S> c : this.children_) { clone.addChild(c.clone()); }
+            for (CommandTemplate.Element<S> c : this.children_) { clone.addChild(c.clone()); }
             return clone;
         }
     }
@@ -108,12 +184,14 @@ public sealed abstract class CommandTemplate<S> {
     //FLUENT CHAIN
     public interface Ongoing<S> {
         Ongoing<S> literal(String label);
-        OngoingArgument<S> argument(String label, ArgumentType<?> argumentType);
         Ongoing<S> requires(Predicate<S> requirement);
+        Ongoing<S> exitPoint();
+        OngoingArgument<S> argument(String label, ArgumentType<?> argumentType);
         Terminated<S> then(String label, int occurrence);
         Terminated<S> then(String label);
-        Terminated<S> split(CommandTemplate<S>... branches);
-        Node<S> end();
+        Terminated<S> split(CommandTemplate.Element<S>... branches);
+        CommandTemplate<S> end();
+        Node<S> endBranch();
     }
 
     public interface OngoingArgument<S> extends Ongoing<S> {
@@ -121,7 +199,8 @@ public sealed abstract class CommandTemplate<S> {
     }
 
     public interface Terminated<S> {
-        Node<S> end();
+        CommandTemplate<S> end();
+        Node<S> endBranch();
     }
 
     private static final class Fluent<S> implements OngoingArgument<S>, Terminated<S>  {
@@ -135,7 +214,16 @@ public sealed abstract class CommandTemplate<S> {
             this.cursor_ = lit;
             return this; // keep returning the same fluent root
         }
-
+        @Override public Ongoing<S> requires(Predicate<S> requirement) {
+            this.cursor_.setRequirement(requirement);
+            return this;
+        }
+        @Override public Ongoing<S> exitPoint() {
+            Collection<CommandTemplate.Element<S>> children = this.cursor_.children_;
+            Exit<S> exit = Exit.instance();
+            if (!children.contains(exit)) { children.add(exit); }
+            return this;
+        }
         @Override public OngoingArgument<S> argument(String label, ArgumentType<?> argType) {
             var arg = new Argument<S>(label, argType);
             this.cursor_.children_.add(arg);
@@ -143,16 +231,10 @@ public sealed abstract class CommandTemplate<S> {
             return this;
         }
 
-        @Override public Terminated<S> split(CommandTemplate<S>... branches) {
+        @Override public Terminated<S> split(CommandTemplate.Element<S>... branches) {
             this.cursor_.children_.addAll(Arrays.asList(branches));
             return this;
         }
-
-        @Override public Ongoing<S> requires(Predicate<S> requirement) {
-            this.cursor_.setRequirement(requirement);
-            return this;
-        }
-
         @Override
         public Ongoing<S> suggests(SuggestionProvider<S> suggester) {
             if (this.cursor_ instanceof CommandTemplate.Argument<S> arg) {
@@ -169,6 +251,13 @@ public sealed abstract class CommandTemplate<S> {
             return this.then(label, 0);
         }
 
-        @Override public Node<S> end() { return root_; }
+        @Override public CommandTemplate<S> end() {
+            this.exitPoint();
+            return new CommandTemplate<>(List.of(this.root_));
+        }
+
+        @Override public Node<S> endBranch() {
+            return this.root_;
+        }
     }
 }
