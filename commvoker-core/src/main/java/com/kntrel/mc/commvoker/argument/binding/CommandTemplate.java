@@ -19,6 +19,17 @@ public class CommandTemplate<S> {
     public static <S> CommandTemplate<S> split(CommandTemplate.Node<S>... branches) {
         return new CommandTemplate<>(Arrays.asList(branches));
     }
+    @SafeVarargs
+    public static <S> CommandTemplate<S> merge(CommandTemplate<S>... templates) {
+        CommandTemplate<S> tmp = new CommandTemplate<>(Collections.emptyList());
+        tmp.trees_ = Arrays.stream(templates)
+                .flatMap(t -> t.trees_.stream())
+                .toList();
+        tmp.leaves_ = Arrays.stream(templates)
+                .flatMap(t -> t.leaves_.stream())
+                .toList();
+        return tmp;
+    }
     public static <S> Forward<S> forward(String target) {
         return new Forward<>(target);
     }
@@ -28,8 +39,8 @@ public class CommandTemplate<S> {
 
 
     //FIELDS
-    private final Collection<Node<S>> trees_;
-    private final List<Node<S>> leaves_;
+    private Collection<Node<S>> trees_;
+    private List<Node<S>> leaves_;
 
 
     //CONSTRUCTOR
@@ -47,13 +58,17 @@ public class CommandTemplate<S> {
         return this.leaves_;
     }
 
+
+    //UTILITY
+    public void append(CommandTemplate<S> next) {
+        this.leaves_.forEach(l -> {
+            l.children().remove(Exit.instance());
+            next.trees_.forEach(l::addChild);
+        });
+        this.leaves_ = next.leaves_;
+    }
     @Override public CommandTemplate<S> clone() {
         return new CommandTemplate<>(this.trees_.stream().map(Node::clone).toList());
-    }
-
-
-    public static sealed abstract class Element<S> permits Forward, Node, Exit {
-        @Override public abstract Element<S> clone();
     }
 
 
@@ -84,6 +99,10 @@ public class CommandTemplate<S> {
 
 
     /* --------------------------------------------------- INNER CLASSES ---------------------------------------------------------*/
+    public static sealed abstract class Element<S> permits Forward, Node, Exit {
+        @Override public abstract Element<S> clone();
+    }
+
     public static final class Forward<S> extends Element<S> {
 
         //FIELDS

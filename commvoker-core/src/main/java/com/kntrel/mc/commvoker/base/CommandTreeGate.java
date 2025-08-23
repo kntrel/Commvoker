@@ -1,12 +1,13 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.mojang.brigadier.tree.CommandNode;
 import java.util.*;
 
-record CommandTreeGate<S>(CommandNode<S> root, List<CommandNode<S>> leaves) {
+record CommandTreeGate<S>(List<CommandNode<S>> roots, List<CommandNode<S>> leaves) {
 
     public static <S> CommandTreeGate<S> ofTree(CommandNode<S> root) {
-        Objects.requireNonNull(root, "root");
+        Objects.requireNonNull(root, "roots");
 
         List<CommandNode<S>> leaves = new ArrayList<>();
         Deque<CommandNode<S>> stack = new ArrayDeque<>();
@@ -25,7 +26,12 @@ record CommandTreeGate<S>(CommandNode<S> root, List<CommandNode<S>> leaves) {
             }
         }
 
-        return new CommandTreeGate<>(root, List.copyOf(leaves));
+        return new CommandTreeGate<>(List.of(root), List.copyOf(leaves));
+    }
+
+    public CommandTreeGate<S> append(CommandTreeGate<S> next) {
+        this.leaves().forEach(l -> next.roots().forEach(l::addChild));
+        return new CommandTreeGate<>(this.roots(), next.leaves());
     }
 
 }

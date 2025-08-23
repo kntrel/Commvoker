@@ -7,7 +7,6 @@ import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.assembler.EndAssembler;
-import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.*;
 import java.util.function.Function;
@@ -16,104 +15,132 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
 
     //FACTORY
     public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> collectionOf(Assembler<S, T> element, int min, int max, Function<Collection<T>, C> composer) {
-        return new CollectionAssembler<>(min, max, element, composer);
+        return new CollectionAssembler<>(min, max, false, element, composer);
+    }
+    public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> relaxedCollectionOf(Assembler<S, T> element, int min, int max, Function<Collection<T>, C> composer) {
+        return new CollectionAssembler<>(min, max, true, element, composer);
     }
     public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> collectionOf(Assembler<S, T> element, int max, Function<Collection<T>, C> composer) {
-        return collectionOf(element, 0, max, composer);
+        return collectionOf(element, 1, max, composer);
+    }
+    public static <S, T, C extends Collection<T>> CollectionAssembler<S, T, C> relaxedCollectionOf(Assembler<S, T> element, int max, Function<Collection<T>, C> composer) {
+        return relaxedCollectionOf(element, 1, max, composer);
     }
     public static <S, T> CollectionAssembler<S, T, List<T>> listOf(Assembler<S, T> element, int min, int max) {
         return collectionOf(element, min, max, List::copyOf);
     }
+    public static <S, T> CollectionAssembler<S, T, List<T>> relaxedListOf(Assembler<S, T> element, int min, int max) {
+        return relaxedCollectionOf(element, min, max, List::copyOf);
+    }
     public static <S, T> CollectionAssembler<S, T, List<T>> listOf(Assembler<S, T> element, int max) {
-        return listOf(element, 0, max);
+        return listOf(element, 1, max);
+    }
+    public static <S, T> CollectionAssembler<S, T, List<T>> relaxedListOf(Assembler<S, T> element, int max) {
+        return relaxedListOf(element, 1, max);
     }
     public static <S, T> CollectionAssembler<S, T, List<T>> listOf(Assembler<S, T> element) {
-        return listOf(element, 0, 8);
+        return listOf(element, 1, 8);
+    }
+    public static <S, T> CollectionAssembler<S, T, List<T>> relaxedListOf(Assembler<S, T> element) {
+        return relaxedListOf(element, 1, 8);
     }
     public static <S, T> CollectionAssembler<S, T, Set<T>> setOf(Assembler<S, T> element, int min, int max) {
         return collectionOf(element, min, max, Set::copyOf);
     }
+    public static <S, T> CollectionAssembler<S, T, Set<T>> relaxedSetOf(Assembler<S, T> element, int min, int max) {
+        return relaxedCollectionOf(element, min, max, Set::copyOf);
+    }
     public static <S, T> CollectionAssembler<S, T, Set<T>> setOf(Assembler<S, T> element, int max) {
-        return setOf(element, 0, max);
+        return setOf(element, 1, max);
+    }
+    public static <S, T> CollectionAssembler<S, T, Set<T>> relaxedSetOf(Assembler<S, T> element, int max) {
+        return relaxedSetOf(element, 1, max);
     }
     public static <S, T> CollectionAssembler<S, T, Set<T>> setOf(Assembler<S, T> element) {
-        return setOf(element, 0, 8);
+        return setOf(element, 1, 8);
+    }
+    public static <S, T> CollectionAssembler<S, T, Set<T>> relaxedSetOf(Assembler<S, T> element) {
+        return relaxedSetOf(element, 1, 8);
     }
 
 
     //ASSETS
-    private record Delegate<S>(CompiledAssembler.TreeGate<S> tree, Map<String, String> namesMap) {}
+    private record Delegate<S>(CommandTemplate<S> template, Map<String, String> namesMap) {}
 
 
     //FIELDS
     private final int min_, max_;
+    private final boolean relaxedMode_;
     private final Contextualizer<S, T> contextualizer_;
     private final Delegate<S>[] delegates_;
     private final Function<Collection<T>, C> composer_;
 
 
     //CONSTRUCTOR
-    private CollectionAssembler(int min, int max, Assembler<S, T> delegate, Function<Collection<T>, C> composer) {
-        if (min < 0) {
-            throw new IllegalArgumentException("A collection's min length cannot be lower than 0");
-        }
-        if (max < min) {
-            throw new IllegalArgumentException("A collection's max length must be bigger or equals its min length");
-        }
-        if (min < 1 && min == max) {
-            throw new IllegalArgumentException("A zero-only length collection is not allowed");
-        }
+    private CollectionAssembler(int min, int max, boolean relaxedMode, Assembler<S, T> delegate, Function<Collection<T>, C> composer) {
+        if (max < 1) { throw new IllegalArgumentException("max must be >= 1"); }
+        if (min < 0) { throw new IllegalArgumentException("min must be >= 0"); }
+        if (max < min) { throw new IllegalArgumentException("max must be >= min"); }
 
         this.min_ = min;
         this.max_ = max;
+        this.relaxedMode_ = relaxedMode;
         this.composer_ = composer;
 
         this.delegates_ = new Delegate[this.max_];
         CompiledAssembler<S, T> compiledAssembler = CompiledAssembler.of(delegate);
-        CommandTemplate.Node<S> tree = compiledAssembler.argumentTrees();
+        CommandTemplate<S> template = compiledAssembler.template();
         this.contextualizer_ = compiledAssembler.contextualizer();
         for (int i = 0; i < this.max_; i++) {
-            CommandTemplate.Node<S> clone = tree.clone();
+            CommandTemplate<S> clone = template.clone();
             final int index = i;
-            var cloneResult = renameTree(clone, s -> s + index);
-            CompiledAssembler.TreeGate<S> treeGate = new CompiledAssembler.TreeGate<>(clone, cloneResult.first());
-            this.delegates_[i] = new Delegate<>(treeGate, cloneResult.second());
+            Map<String, String> namesMap = renameTemplate(clone, s -> s + index);
+            this.delegates_[i] = new Delegate<>(clone, namesMap);
         }
     }
 
 
     @Override
-    public CommandTemplate.Node<S> argumentTemplate() {
-        CompiledAssembler.TreeGate<S> rootTree = this.delegates_[0].tree();
-        CommandTemplate.Node<S> root = rootTree.root();
-        if (this.max_ < 2) { return root; }
+    public CommandTemplate<S> argumentTemplate() {
+        List<CommandTemplate<S>> roots = new ArrayList<>();
 
-        CompiledAssembler.TreeGate<S> lastTree = this.delegates_[this.max_ - 1].tree();
-        CommandTemplate.Node<S> last = lastTree.root();
-        CommandTemplate.Node<S> andNode = CommandTemplate.<S>beginLiteral("and").end();
-        andNode.addChild(last);
-
-        Collection<CommandTemplate.Node<S>> upstream = rootTree.leaves();
-        for (int i = 1; i < this.max_; i++) {
-            if (i == (this.max_ - 1)) {
-                upstream.forEach(n -> n.addChild(andNode));
-                break;
-            }
-
-            CompiledAssembler.TreeGate<S> tree = this.delegates_[i].tree();
-            CommandTemplate.Node<S> next = tree.root();
-
-            for (CommandTemplate.Node<S> n : upstream) {
-                n.addChild(next);
-                if (i >= this.min_) {
-                    n.addChild(CommandTemplate.<S>beginLiteral("and").then(last.label()).end());
-                }
-            }
-
-            upstream = tree.leaves();
+        // "none" route to pass an empty list
+        if (this.min_ < 1) {
+            roots.add(CommandTemplate.<S>literal("none").end());
         }
 
-        return root;
+        CommandTemplate<S> first = this.delegates_[0].template();
+
+        // If max == 1, just take one element.
+        if (this.max_ == 1) {
+            roots.add(first.clone());
+            return CommandTemplate.merge(roots.toArray(new CommandTemplate[0]));
+        }
+
+        // "only" route to pass only one element
+        if (this.min_ < 2 && this.max_ > 0) {
+            CommandTemplate<S> tmp = CommandTemplate.<S>literal("only").end();
+            tmp.append(first);
+            roots.add(tmp);
+        }
+
+        //"and" route for more than two elements
+        CommandTemplate<S> last = this.delegates_[this.max_ - 1].template();
+        CommandTemplate<S> andTemplate = CommandTemplate.<S>literal("and").end();
+        andTemplate.append(last);
+        CommandTemplate<S> tmp = first.clone();
+
+        for (int i = 1; i < (this.delegates_.length - 1); i++) {
+            CommandTemplate<S> del = this.delegates_[i].template();
+            CommandTemplate<S> append = (i >= this.min_)
+                    ? CommandTemplate.merge(andTemplate, del)
+                    : del;
+            tmp.append(append);
+        }
+        tmp.append(andTemplate);
+        roots.add(tmp);
+
+        return CommandTemplate.merge(roots.toArray(new CommandTemplate[0]));
     }
 
     @Override
@@ -135,12 +162,10 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     }
 
 
-    private static <S> Pair<Collection<CommandTemplate.Node<S>>, Map<String, String>> renameTree(CommandTemplate<S> root, Function<String, String> renamer) {
-        Deque<CommandTemplate<S>> stack = new ArrayDeque<>();
-        stack.add(root);
+    private static <S> Map<String, String> renameTemplate(CommandTemplate<S> temp, Function<String, String> renamer) {
+        Deque<CommandTemplate.Element<S>> stack = new ArrayDeque<>(temp.trees());
         List<CommandTemplate.Forward<S>> forwards = new ArrayList<>();
         Map<String, String> namesMap = new HashMap<>();
-        List<CommandTemplate.Node<S>> leaves = new ArrayList<>();
 
         while (!stack.isEmpty()) switch (stack.pollLast()) {
             case CommandTemplate.Node<S> n -> {
@@ -150,15 +175,14 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
                     n.rename(rename);
                     namesMap.put(old, rename);
                 }
-                if (n.children().isEmpty()) {
-                    leaves.add(n);
-                } else for (CommandTemplate<S> c : n.children()) { stack.addLast(c); }
+                for (CommandTemplate.Element<S> c : n.children()) { stack.addLast(c); }
             }
             case CommandTemplate.Forward<S> f -> forwards.add(f);
+            case CommandTemplate.Exit<S> e -> {}
         }
 
         forwards.forEach(f -> f.reforward(namesMap.get(f.forwardsTo())));
 
-        return Pair.of(leaves, namesMap);
+        return namesMap;
     }
 }

@@ -65,7 +65,7 @@ class CommvokerExecutionTest {
         }
     }
 
-    @Command("root")
+    @Command("roots")
     public static class RootCommand {
         String a, b, c;
 
@@ -154,11 +154,11 @@ class CommvokerExecutionTest {
         RootCommand cmnd = new RootCommand();
         this.commvoker.register(cmnd);
 
-        assertDoesNotThrow(() -> this.commvoker.execute("root a1 b2", SRC));
+        assertDoesNotThrow(() -> this.commvoker.execute("roots a1 b2", SRC));
         assertEquals("a1", cmnd.a);
         assertEquals("b2", cmnd.b);
 
-        assertDoesNotThrow(() -> this.commvoker.execute("root a3 b4 c5", SRC));
+        assertDoesNotThrow(() -> this.commvoker.execute("roots a3 b4 c5", SRC));
         assertEquals("a3", cmnd.a);
         assertEquals("b4", cmnd.b);
         assertEquals("c5", cmnd.c);
