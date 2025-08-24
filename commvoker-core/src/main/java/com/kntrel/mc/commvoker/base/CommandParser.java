@@ -91,7 +91,7 @@ class CommandParser<S> {
     @SuppressWarnings("unchecked")
     public LiteralArgumentBuilder<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
         // Guard assertions
-        if (patternTokens.length == 0) {
+         if (patternTokens.length == 0) {
             throw new IllegalArgumentException("empty CommandToken array");
         }
         if (patternTokens[0].type() != CommandPatternToken.Type.LITERAL) {
@@ -178,17 +178,17 @@ class CommandParser<S> {
             ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i));
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
             CommandTreeGate<S> gate = (execution == null)
-                    ? CommandTemplateCompiler.compile(descriptor.argumentTrees(), nameSupplier)
-                    : CommandTemplateCompiler.compile(descriptor.argumentTrees(), nameSupplier, execution);
-            upstream.forEach(n -> n.addChild(gate.root()));
+                    ? CommandTemplateCompiler.compile(descriptor.template(), nameSupplier)
+                    : CommandTemplateCompiler.compile(descriptor.template(), nameSupplier, execution);
+            upstream.forEach(n -> gate.roots().forEach(n::addChild));
             upstream = gate.leaves();
             argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor.contextualizer());
         }
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));
-        Iterator<CommandNode<S>> tail = head.getChildren().iterator();
-        if (tail.hasNext()) {
-            root.then(tail.next());
+        Collection<CommandNode<S>> tail = head.getChildren();
+        if (!tail.isEmpty()) {
+            tail.forEach(root::then);
         } else {
             root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
         }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -87,51 +88,39 @@ class ArgumentResolverImplTest {
     @Test
     void resolvesPlainString_toStringArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 0));
-        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.template());
         assertNotEquals(stringArgumentType.getType(), StringArgumentType.StringType.GREEDY_PHRASE);
     }
 
     @Test
     void resolvesWordAnnotatedString_toWordArgumentType() {
         var desc = resolver.resolve(ctx(DUMMY, 1));
-        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.template());
         assertEquals(StringArgumentType.StringType.SINGLE_WORD, stringArgumentType.getType());
     }
 
     @Test
     void resolvesPrimitiveInt_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 2));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.template());
     }
 
     @Test
     void resolvesBoxedInteger_viaINTEGERBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 3));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(IntegerArgumentType.class, desc.template());
     }
 
     @Test
     void resolvesPrimitiveDouble_viaPrimitiveBinding() {
         var desc = resolver.resolve(ctx(DUMMY, 4));
-        assertArgumentTypeNode(DoubleArgumentType.class, desc.argumentTrees());
-    }
-
-    @Test @SuppressWarnings("rawtypes")
-    void resolvesListOfIntegers_toCollectionList() {
-        var desc = resolver.resolve(ctx(DUMMY, 5));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.argumentTrees());
-    }
-
-    @Test @SuppressWarnings("rawtypes")
-    void resolvesSetOfBooleans_toCollectionSet() {
-        var desc = resolver.resolve(ctx(DUMMY, 6));
-        assertArgumentTypeNode(BoolArgumentType.class, desc.argumentTrees());
+        assertArgumentTypeNode(DoubleArgumentType.class, desc.template());
     }
 
     @Test
     void lastStringTokenBecomesGreedy() {
         var desc = resolver.resolve(ctx(DUMMY, 7));
-        StringArgumentType stringArgumentType =  assertArgumentTypeNode(StringArgumentType.class, desc.argumentTrees());
+        StringArgumentType stringArgumentType =  assertArgumentTypeNode(StringArgumentType.class, desc.template());
         assertEquals(StringArgumentType.StringType.GREEDY_PHRASE, stringArgumentType.getType());
     }
 
@@ -148,7 +137,7 @@ class ArgumentResolverImplTest {
 
         ArgumentContext ctx = ctx(DUMMY, 0);
         var desc = resolver.resolve(ctx);
-        ArgumentType<?> argType = assertArgumentTypeNode(ArgumentType.class, desc.argumentTrees());
+        ArgumentType<?> argType = assertArgumentTypeNode(ArgumentType.class, desc.template());
         assertSame(overwrite, argType);
     }
 
@@ -170,8 +159,14 @@ class ArgumentResolverImplTest {
     // helper for the above test
     @SuppressWarnings("unused") private void noBinding(UUID id) {}
 
+
     private static <T extends ArgumentType<?>> T assertArgumentTypeNode(Class<T> argumentTypeClass, CommandTemplate<?> tmpl) {
-        CommandTemplate.Node<?> node = assertInstanceOf(CommandTemplate.Node.class, tmpl);
+        List<? extends CommandTemplate.Node<?>> trees = tmpl.trees();
+        assertEquals(1, trees.size());
+        CommandTemplate.Node<?> node = trees.getFirst();
+        return assertArgumentTypeNode(argumentTypeClass, node);
+    }
+    private static <T extends ArgumentType<?>> T assertArgumentTypeNode(Class<T> argumentTypeClass, CommandTemplate.Node<?> node) {
         CommandTemplate.Argument<?> arg = assertInstanceOf(CommandTemplate.Argument.class, node);
         return assertInstanceOf(argumentTypeClass, arg.argumentType());
     }

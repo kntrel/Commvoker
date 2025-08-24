@@ -10,13 +10,12 @@ public interface ArgumentTypeAssembler<T> extends EndAssembler<Object, T> {
     ArgumentType<? extends T> argumentType();
 
     @Override
-    default CommandTemplate.Node<Object> argumentTemplate() {
-        return CommandTemplate.beginArgument("arg", this.argumentType()).end();
+    default CommandTemplate<Object> argumentTemplate() {
+        return CommandTemplate.argument("arg", this.argumentType()).end();
     }
 
     @Override @SuppressWarnings("unchecked")
     default T contextualize(CommandContext<?> context, Components components) {
         return (T) components.get("arg");
     }
-
 }

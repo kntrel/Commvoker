@@ -6,18 +6,20 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.tree.CommandNode;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 final class CommandTemplateCompiler<S> {
 
     //STATIC API
-    static <S> CommandTreeGate<S> compile(CommandTemplate.Node<? super S> root, NameSupplier nameSupplier, Command<S> command) {
+    static <S> CommandTreeGate<S> compile(CommandTemplate<? super S> root, NameSupplier nameSupplier, Command<S> command) {
         return new CommandTemplateCompiler<S>(nameSupplier, command).compile(root);
     }
 
-    static <S> CommandTreeGate<S> compile(CommandTemplate.Node<? super S> root, NameSupplier nameSupplier) {
+    static <S> CommandTreeGate<S> compile(CommandTemplate<? super S> root, NameSupplier nameSupplier) {
         return new CommandTemplateCompiler<S>(nameSupplier).compile(root);
     }
 
@@ -43,32 +45,29 @@ final class CommandTemplateCompiler<S> {
 
 
     //UTILITY
-    CommandTreeGate<S> compile(CommandTemplate.Node<? super S> root) {
-        Objects.requireNonNull(root, "root");
-        if (used) {
+    CommandTreeGate<S> compile(CommandTemplate<? super S> tmp) {
+        Objects.requireNonNull(tmp, "template");
+        if (this.used) {
             throw new IllegalStateException("This compiler instance has already been used.");
         }
-        used = true;
+        this.used = true;
 
         // Pass 0: collect all nodes and enforce global uniqueness of labels
-        this.byLabel = indexByLabel(root);
+        this.byLabel = indexByLabel(tmp);
 
-        // Pass 1: build nodes (children & targets first), wire redirects, return built root
-        CommandNode<S> r = buildNode(root);
-        CommandTreeGate<S> result = new CommandTreeGate<>(r, List.copyOf(leaves));
-
-        // best effort cleanup (helps GC if the instance lingers)
-        clear();
-        return result;
+        // Pass 1: build nodes (children & targets first), wire redirects, return built roots
+        List<CommandNode<S>> roots = tmp.trees().stream()
+                .map(this::buildNode)
+                .toList();
+        return new CommandTreeGate<>(roots, this.leaves);
     }
 
 
     //HELPERS
-    private Map<String, ? extends List<CommandTemplate.Node<? super S>>> indexByLabel(CommandTemplate.Node<? super S> root) {
+    private Map<String, ? extends List<CommandTemplate.Node<? super S>>> indexByLabel(CommandTemplate<? super S> tmp) {
         Map<String, List<CommandTemplate.Node<? super S>>> map = new HashMap<>();
-        Deque<CommandTemplate.Node<? super S>> dfs = new ArrayDeque<>();
+        Deque<CommandTemplate.Node<? super S>> dfs = new ArrayDeque<>(tmp.trees());
         Set<String> argumentLabels = new HashSet<>();
-        dfs.add(root);
 
         while (!dfs.isEmpty()) {
             CommandTemplate.Node<? super S> n = dfs.pollLast();
@@ -78,17 +77,14 @@ final class CommandTemplateCompiler<S> {
             }
             if (n instanceof CommandTemplate.Argument<? super S>) {
                 if (argumentLabels.contains(label)) {
-                    throw new IllegalStateException("Duplicate argument node labeled '" + label + "' found in template");
+                    continue;
                 }
                 argumentLabels.add(label);
             }
             map.computeIfAbsent(label, l -> new ArrayList<>()).add(n);
 
-            for (CommandTemplate<? super S> child : n.children()) {
-                switch (child) {
-                    case CommandTemplate.Node<? super S> ch -> dfs.addLast(ch);
-                    case CommandTemplate.Forward<? super S> ch -> { /* target validated during build */ }
-                }
+            for (CommandTemplate.Element<? super S> c : n.children()) {
+                if (c instanceof CommandTemplate.Node<? super S> ch) { dfs.addLast(ch); }
             }
         }
         return map;
@@ -108,16 +104,13 @@ final class CommandTemplateCompiler<S> {
 
         // Partition children: either many Nodes OR exactly one Forward
         List<CommandTemplate.Node<? super S>> children = new ArrayList<>();
-        CommandTemplate.Forward<? super S> forward = null;
-        for (CommandTemplate<? super S> child : node.children()) {
+        List<CommandTemplate.Forward<? super S>> forwards = new ArrayList<>();
+        boolean isLeave = false;
+        for (CommandTemplate.Element<? super S> child : node.children()) {
             switch (child) {
                 case CommandTemplate.Node<? super S> ch -> children.add(ch);
-                case CommandTemplate.Forward<? super S> ch -> {
-                    if (forward != null) {
-                        throw new IllegalStateException("Node '" + node.label() + "' has forwards to more than one node");
-                    }
-                    forward = ch;
-                }
+                case CommandTemplate.Forward<? super S> ch -> forwards.add(ch);
+                case CommandTemplate.Exit<? super S> ch -> isLeave = true;
             }
         }
 
@@ -128,17 +121,15 @@ final class CommandTemplateCompiler<S> {
                 : LiteralArgumentBuilder.literal(node.label());
 
         // Build normal children first (so we can attach CommandNode<S> instances)
-        List<CommandNode<S>> builtChildren = children.stream().map(this::buildNode).toList();
+        List<CommandNode<S>> builtChildren = children.stream()
+                .map(this::buildNode)
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        // Resolve redirect target if present
-        CommandNode<S> redirectTarget = null;
-        if (forward != null) {
-            if (!children.isEmpty()) {
-                throw new IllegalStateException("Node '" + node.label() + "' has Forward plus other children");
-            }
+        // Resolving forwards
+        for (CommandTemplate.Forward<? super S> forward : forwards) {
             String targetLabel = forward.forwardsTo();
 
-            List<CommandTemplate.Node<? super S>> targets = byLabel.get(targetLabel);
+            List<CommandTemplate.Node<? super S>> targets = this.byLabel.get(targetLabel);
             if (targets == null || targets.isEmpty()) {
                 throw new IllegalStateException("Forward from '" + node.label() + "' points to unknown label '" + targetLabel + "'");
             }
@@ -150,34 +141,24 @@ final class CommandTemplateCompiler<S> {
             if (ancestors.contains(target)) {
                 throw new IllegalStateException("Forward from '" + node.label() + "' points to ancestor '" + target.label() + "'");
             }
-            redirectTarget = buildNode(target);
+            builtChildren.add(buildNode(target));
         }
 
         Predicate<? super S> req = node.requirement();
-        if (req != null) {
-            // safe cast: brigadier requires Predicate<S>, template provides Predicate<? super S>
-            builder.requires((Predicate<S>) req);
+        if (req != null) { builder.requires((Predicate<S>) req); }
+
+        if (node instanceof CommandTemplate.Argument<? super S> arg) {
+            SuggestionProvider<? extends S> sug = ((CommandTemplate.Argument<S>) arg).suggestionProvider();
+            if (sug != null) { ((RequiredArgumentBuilder<S, ?>) builder).suggests((SuggestionProvider<S>) sug); }
         }
 
-        final CommandNode<S> self;
-        if (redirectTarget != null) {
-            builder.then(redirectTarget);
-            self = builder.build();
-        } else if (builtChildren.isEmpty()) {
-            if (command != null) {
-                builder.executes(command);
-            }
-            self = builder.build();
-            leaves.add(self);
-        } else {
-            for (CommandNode<S> chNode : builtChildren) {
-                builder.then(chNode);
-            }
-            self = builder.build();
-        }
+        if (this.command != null && isLeave) { builder.executes(this.command); }
+        final CommandNode<S> self = builder.build();
+        builtChildren.forEach(self::addChild);
+        if (isLeave) { this.leaves.add(self); }
 
-        memo.put(node, self);
-        ancestors.removeLast();
+        this.memo.put(node, self);
+        this.ancestors.removeLast();
         return self;
     }
 
