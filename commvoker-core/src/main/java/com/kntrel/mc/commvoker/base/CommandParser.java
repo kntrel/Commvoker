@@ -91,7 +91,7 @@ class CommandParser<S> {
     @SuppressWarnings("unchecked")
     public LiteralArgumentBuilder<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
         // Guard assertions
-        if (patternTokens.length == 0) {
+         if (patternTokens.length == 0) {
             throw new IllegalArgumentException("empty CommandToken array");
         }
         if (patternTokens[0].type() != CommandPatternToken.Type.LITERAL) {
@@ -186,9 +186,9 @@ class CommandParser<S> {
         }
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));
-        Iterator<CommandNode<S>> tail = head.getChildren().iterator();
-        if (tail.hasNext()) {
-            root.then(tail.next());
+        Collection<CommandNode<S>> tail = head.getChildren();
+        if (!tail.isEmpty()) {
+            tail.forEach(root::then);
         } else {
             root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
         }

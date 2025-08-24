@@ -1,6 +1,5 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
-
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
@@ -99,9 +98,33 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
         }
     }
 
-
     @Override
     public CommandTemplate<S> argumentTemplate() {
+        return (this.relaxedMode_)
+                ? relaxedArgumentTemplate()
+                : strictArgumentTemplate();
+    }
+
+    @Override
+    public C contextualize(CommandContext<? extends S> context, Components components) {
+        List<T> list = new ArrayList<>(this.max_);
+        outer : for (int i = 0; i < this.max_; i++) {
+            Map<String, Object> compMap = new HashMap<>();
+            for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
+                Object o = components.get(entry.getValue());
+                if (o == null) { continue outer; }
+                compMap.put(entry.getKey(), o);
+            }
+
+            T elm = this.contextualizer_.contextualize(context, new Components(compMap));
+            list.add(elm);
+        }
+
+        return this.composer_.apply(list);
+    }
+
+
+    private CommandTemplate<S> strictArgumentTemplate() {
         List<CommandTemplate<S>> roots = new ArrayList<>();
 
         // "none" route to pass an empty list
@@ -125,40 +148,82 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
         }
 
         //"and" route for more than two elements
-        CommandTemplate<S> last = this.delegates_[this.max_ - 1].template();
-        CommandTemplate<S> andTemplate = CommandTemplate.<S>literal("and").end();
-        andTemplate.append(last);
+
+        CommandTemplate.Node<S> andNode = CommandTemplate.<S>literal("and").exitPoint().endBranch();
         CommandTemplate<S> tmp = first.clone();
+        Collection<CommandTemplate.Node<S>> upstream = tmp.exitPoints();
 
         for (int i = 1; i < (this.delegates_.length - 1); i++) {
-            CommandTemplate<S> del = this.delegates_[i].template();
-            CommandTemplate<S> append = (i >= this.min_)
-                    ? CommandTemplate.merge(andTemplate, del)
-                    : del;
-            tmp.append(append);
+            CommandTemplate<S> del = this.delegates_[i].template().clone();
+            for (CommandTemplate.Node<S> u : upstream) {
+                if (i >= this.min_) {
+                    u.addChild(andNode);
+                }
+                if (i < (this.delegates_.length - 1)) {
+                    u.children().remove(CommandTemplate.exitPoint());
+                }
+                del.trees().forEach(u::addChild);
+            }
+            upstream = del.exitPoints();
         }
-        tmp.append(andTemplate);
+        upstream.forEach(n -> n.addChild(andNode));
+        CommandTemplate<S> last = this.delegates_[this.max_ - 1].template();
+        tmp = CommandTemplate.split(tmp.trees().toArray(new CommandTemplate.Node[0]));
+        tmp.append(last);
         roots.add(tmp);
 
         return CommandTemplate.merge(roots.toArray(new CommandTemplate[0]));
     }
 
-    @Override
-    public C contextualize(CommandContext<? extends S> context, Components components) {
-        List<T> list = new ArrayList<>(this.max_);
-        outer : for (int i = 0; i < this.max_; i++) {
-            Map<String, Object> compMap = new HashMap<>();
-            for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
-                Object o = components.get(entry.getValue());
-                if (o == null) { continue outer; }
-                compMap.put(entry.getKey(), o);
-            }
+    private CommandTemplate<S> relaxedArgumentTemplate() {
+        // start with the first element
+        CommandTemplate<S> tmp = this.delegates_[0].template().clone();
 
-            T elm = this.contextualizer_.contextualize(context, new Components(compMap));
-            list.add(elm);
+        // enforce min_: if we haven't met the minimum yet, remove early exits
+        if (1 < this.min_) {
+            for (CommandTemplate.Node<S> n : tmp.exitPoints()) {
+                n.children().remove(CommandTemplate.exitPoint());
+            }
         }
 
-        return this.composer_.apply(list);
+        // if only one element is allowed, we're done
+        if (this.max_ == 1) {
+            return tmp;
+        }
+
+        // single shared "and" node that we will later append the <last> element under
+        CommandTemplate.Node<S> andNode = CommandTemplate.<S>literal("and").exitPoint().endBranch();
+
+        // extend greedily up to the (max - 1)-th element
+        for (int i = 1; i < (this.delegates_.length - 1); i++) {
+            // allow optional "... and <last>" at the current stage
+            for (CommandTemplate.Node<S> u : tmp.exitPoints()) {
+                u.addChild(andNode);
+            }
+
+            // append next element subtree (preserves its exits → greedy)
+            CommandTemplate<S> del = this.delegates_[i].template().clone();
+            tmp.append(del);
+
+            // still under min_? strip exits so the command can't finish yet
+            int elementsSoFar = i + 1; // because i starts at 1 here
+            if (elementsSoFar < this.min_) {
+                for (CommandTemplate.Node<S> n : tmp.exitPoints()) {
+                    n.children().remove(CommandTemplate.exitPoint());
+                }
+            }
+        }
+
+        // final chance to say "... and <last>" (covers max == 2 case, where the loop didn't run)
+        for (CommandTemplate.Node<S> u : tmp.exitPoints()) {
+            u.addChild(andNode);
+        }
+
+        // append the fixed <last> element subtree under every 'and' exit
+        CommandTemplate<S> out = CommandTemplate.split(tmp.trees().toArray(new CommandTemplate.Node[0]));
+        out.append(this.delegates_[this.max_ - 1].template());
+
+        return out;
     }
 
 

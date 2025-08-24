@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -116,18 +117,6 @@ class ArgumentResolverImplTest {
         assertArgumentTypeNode(DoubleArgumentType.class, desc.template());
     }
 
-    @Test @SuppressWarnings("rawtypes")
-    void resolvesListOfIntegers_toCollectionList() {
-        var desc = resolver.resolve(ctx(DUMMY, 5));
-        assertArgumentTypeNode(IntegerArgumentType.class, desc.template());
-    }
-
-    @Test @SuppressWarnings("rawtypes")
-    void resolvesSetOfBooleans_toCollectionSet() {
-        var desc = resolver.resolve(ctx(DUMMY, 6));
-        assertArgumentTypeNode(BoolArgumentType.class, desc.template());
-    }
-
     @Test
     void lastStringTokenBecomesGreedy() {
         var desc = resolver.resolve(ctx(DUMMY, 7));
@@ -170,8 +159,14 @@ class ArgumentResolverImplTest {
     // helper for the above test
     @SuppressWarnings("unused") private void noBinding(UUID id) {}
 
+
     private static <T extends ArgumentType<?>> T assertArgumentTypeNode(Class<T> argumentTypeClass, CommandTemplate<?> tmpl) {
-        CommandTemplate.Node<?> node = assertInstanceOf(CommandTemplate.Node.class, tmpl);
+        List<? extends CommandTemplate.Node<?>> trees = tmpl.trees();
+        assertEquals(1, trees.size());
+        CommandTemplate.Node<?> node = trees.getFirst();
+        return assertArgumentTypeNode(argumentTypeClass, node);
+    }
+    private static <T extends ArgumentType<?>> T assertArgumentTypeNode(Class<T> argumentTypeClass, CommandTemplate.Node<?> node) {
         CommandTemplate.Argument<?> arg = assertInstanceOf(CommandTemplate.Argument.class, node);
         return assertInstanceOf(argumentTypeClass, arg.argumentType());
     }

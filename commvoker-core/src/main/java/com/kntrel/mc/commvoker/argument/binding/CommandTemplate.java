@@ -74,7 +74,7 @@ public class CommandTemplate<S> {
 
     //HELPERS
     private static <S> List<Node<S>> findExitPoints(Node<S> root) {
-        List<Node<S>> out = new ArrayList<>();
+        Set<Node<S>> out = new HashSet<>();
         Deque<Node<S>> stack = new ArrayDeque<>();
         stack.add(root);
 
@@ -83,17 +83,12 @@ public class CommandTemplate<S> {
             boolean exitPointed = false;
             for (Element<S> child : node.children()) switch (child) {
                 case Node<S> n -> stack.addLast(n);
-                case Exit<S> e -> {
-                    if (!exitPointed) {
-                        exitPointed = true;
-                        out.add(node);
-                    }
-                }
+                case Exit<S> e -> out.add(node);
                 default -> {}
             }
         }
 
-        return out;
+        return List.copyOf(out);
     }
 
 

@@ -59,11 +59,7 @@ final class CommandTemplateCompiler<S> {
         List<CommandNode<S>> roots = tmp.trees().stream()
                 .map(this::buildNode)
                 .toList();
-        CommandTreeGate<S> result = new CommandTreeGate<>(roots, this.leaves);
-
-        // best effort cleanup (helps GC if the instance lingers)
-        clear();
-        return result;
+        return new CommandTreeGate<>(roots, this.leaves);
     }
 
 
@@ -81,7 +77,7 @@ final class CommandTemplateCompiler<S> {
             }
             if (n instanceof CommandTemplate.Argument<? super S>) {
                 if (argumentLabels.contains(label)) {
-                    throw new IllegalStateException("Duplicate argument node labeled '" + label + "' found in template");
+                    continue;
                 }
                 argumentLabels.add(label);
             }

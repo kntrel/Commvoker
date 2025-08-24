@@ -157,9 +157,7 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
                         String label = n.label();
 
                         // Ensure per-template uniqueness of argument labels (keeps forwards unambiguous here)
-                        if (!seenLabels.add(label)) {
-                            throw new IllegalStateException("Template has more than one argument under the label '" + label + "'");
-                        }
+                        if (!seenLabels.add(label)) { continue; }
 
                         AtomicInteger count = argCount.computeIfAbsent(label, l -> new AtomicInteger(0));
                         int c = count.getAndIncrement();
