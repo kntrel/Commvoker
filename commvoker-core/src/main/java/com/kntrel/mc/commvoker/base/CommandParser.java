@@ -180,7 +180,7 @@ class CommandParser<S> {
             CommandTreeGate<S> gate = (execution == null)
                     ? CommandTemplateCompiler.compile(descriptor.template(), nameSupplier)
                     : CommandTemplateCompiler.compile(descriptor.template(), nameSupplier, execution);
-            upstream.forEach(n -> n.addChild(gate.root()));
+            upstream.forEach(n -> gate.roots().forEach(n::addChild));
             upstream = gate.leaves();
             argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor.contextualizer());
         }
