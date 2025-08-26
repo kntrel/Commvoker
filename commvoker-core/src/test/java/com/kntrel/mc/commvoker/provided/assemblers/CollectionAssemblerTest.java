@@ -78,7 +78,7 @@ public class CollectionAssemblerTest {
         @Test
         void greedy_moreThanTwo_allows_earlyEnds_and_optionalAnd() {
             var el = StringAssembler.word();
-            var col = CollectionAssembler.relaxedListOf(el, /*min*/1, /*max*/3);
+            var col = CollectionAssembler.relaxedListOf(el, 1, 3);
 
             CommandTemplate<Object> tpl = col.argumentTemplate();
             assertTrue(containsLiteral(tpl, "and"));
@@ -106,8 +106,6 @@ public class CollectionAssemblerTest {
             var col = CollectionAssembler.relaxedListOf(el, /*min*/0, /*max*/3);
 
             CommandTemplate<Object> tpl = col.argumentTemplate();
-            // No "none" branch in relaxed mode
-            assertFalse(containsLiteral(tpl, "none"));
             // Optional 'and' exists
             assertTrue(containsLiteral(tpl, "and"));
 

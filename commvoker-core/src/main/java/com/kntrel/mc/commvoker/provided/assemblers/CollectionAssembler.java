@@ -179,51 +179,32 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
         // start with the first element
         CommandTemplate<S> tmp = this.delegates_[0].template().clone();
 
-        // enforce min_: if we haven't met the minimum yet, remove early exits
-        if (1 < this.min_) {
-            for (CommandTemplate.Node<S> n : tmp.exitPoints()) {
-                n.children().remove(CommandTemplate.exitPoint());
-            }
-        }
-
         // if only one element is allowed, we're done
         if (this.max_ == 1) {
             return tmp;
         }
 
-        // single shared "and" node that we will later append the <last> element under
-        CommandTemplate.Node<S> andNode = CommandTemplate.<S>literal("and").exitPoint().endBranch();
-
-        // extend greedily up to the (max - 1)-th element
+        Collection<CommandTemplate.Node<S>> exitPoints = new ArrayList<>();
         for (int i = 1; i < (this.delegates_.length - 1); i++) {
-            // allow optional "... and <last>" at the current stage
-            for (CommandTemplate.Node<S> u : tmp.exitPoints()) {
-                u.addChild(andNode);
-            }
-
-            // append next element subtree (preserves its exits → greedy)
             CommandTemplate<S> del = this.delegates_[i].template().clone();
-            tmp.append(del);
-
-            // still under min_? strip exits so the command can't finish yet
-            int elementsSoFar = i + 1; // because i starts at 1 here
-            if (elementsSoFar < this.min_) {
-                for (CommandTemplate.Node<S> n : tmp.exitPoints()) {
-                    n.children().remove(CommandTemplate.exitPoint());
-                }
+            if (i >= this.min_) {
+                exitPoints.addAll(tmp.exitPoints());
             }
+            tmp.append(del);
         }
 
-        // final chance to say "... and <last>" (covers max == 2 case, where the loop didn't run)
-        for (CommandTemplate.Node<S> u : tmp.exitPoints()) {
-            u.addChild(andNode);
+        CommandTemplate<S> last = this.delegates_[this.delegates_.length - 1].template().clone();
+        CommandTemplate.Node<S> andNode = CommandTemplate.<S>literal("and").split(last.trees().toArray(new CommandTemplate.Element[0])).endBranch();
+        exitPoints.forEach(p -> {
+            p.addChild(andNode);
+            p.addChild(CommandTemplate.exitPoint());
+        });
+
+        if (this.min_ < 1) {
+            tmp = CommandTemplate.merge(tmp, CommandTemplate.<S>literal("none").end());
         }
 
-        // append the fixed <last> element subtree under every 'and' exit
-        CommandTemplate<S> out = CommandTemplate.split(tmp.trees().toArray(new CommandTemplate.Node[0]));
-        out.append(this.delegates_[this.max_ - 1].template());
-
-        return out;
+        return CommandTemplate.split(tmp.trees().toArray(new CommandTemplate.Node[0]));
     }
 
 
