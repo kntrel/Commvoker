@@ -9,12 +9,14 @@ import com.kntrel.mc.commvoker.command.*;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
+import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.CommandNode;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
 
@@ -154,6 +156,7 @@ class CommandParser<S> {
         //Resolving explicit arguments
         CommandNode<S> head = LiteralArgumentBuilder.<S>literal("___head___").build();
         List<CommandNode<S>> upstream = List.of(head);
+        List<Pair<Type, ArgumentDescriptor<?, ?>>> descriptors = new ArrayList<>();
         for (int i = 1; i < command.size(); i++) {
             CommandToken t = command.getTokenAt(i);
 
@@ -175,7 +178,8 @@ class CommandParser<S> {
 
             ParamInfo paramInfo = paramMap.get(t.label());
             Parameter param = paramInfo.param();
-            ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i));
+            ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, descriptors));
+            descriptors.add(Pair.of(param.getParameterizedType(), descriptor));
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
             CommandTreeGate<S> gate = (execution == null)
                     ? CommandTemplateCompiler.compile(descriptor.template(), nameSupplier)
