@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
 import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
@@ -36,7 +36,7 @@ public class WorldAssembler implements ComposedAssembler<CommandSender, World> {
         hooK.hook("worldArg", StringAssembler.word()).suggests(this::getSuggestions);
     }
     @Override
-    public World contextualize(CommandContext<? extends CommandSender> ctx, Components components) {
-        return ctx.getSource().getServer().getWorld(components.get("worldArg", String.class));
+    public World contextualize(ExecutionContext<? extends CommandSender> ctx) {
+        return ctx.source().getServer().getWorld(ctx.component("worldArg", String.class));
     }
 }

@@ -1,12 +1,11 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
 import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.kntrel.mc.commvoker.bukkit.internal.CraftBukkitAccessors;
-import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
@@ -67,7 +66,7 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
             return this.delegate_;
         }
         @Override
-        public Optional<T> compose(CommandContext<? extends S> ctx, C collection) {
+        public Optional<T> compose(ExecutionContext<? extends S> ctx, C collection) {
             if (collection.isEmpty()) {
                 return Optional.empty();
             }
@@ -90,7 +89,7 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
             return this.delegate_;
         }
         @Override
-        public T compose(CommandContext<? extends S> ctx, Optional<T> object) {
+        public T compose(ExecutionContext<? extends S> ctx, Optional<T> object) {
             return object.orElseThrow();
         }
     }
@@ -121,10 +120,10 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
     }
 
     @Override @SuppressWarnings("unchecked")
-    public List<E> contextualize(CommandContext<? extends CommandSender> ctx, Components components) {
-        CommandSender sender = ctx.getSource();
+    public List<E> contextualize(ExecutionContext<? extends CommandSender> ctx) {
+        CommandSender sender = ctx.source();
 
-        EntitySelector selector = components.get("entityArg", EntitySelector.class);
+        EntitySelector selector = ctx.component("entityArg", EntitySelector.class);
         CommandSourceStack css = (CommandSourceStack) CraftBukkitAccessors.getCommandSourceStack(sender);
         List<? extends net.minecraft.world.entity.Entity> serverEntities;
         try {

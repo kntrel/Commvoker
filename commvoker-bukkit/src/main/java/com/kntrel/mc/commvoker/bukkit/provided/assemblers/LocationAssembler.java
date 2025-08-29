@@ -1,10 +1,9 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
-import com.mojang.brigadier.context.CommandContext;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -53,13 +52,13 @@ public class LocationAssembler implements ComposedAssembler<CommandSender, Locat
     }
 
     @Override
-    public Location contextualize(CommandContext<? extends CommandSender> ctx, Components components) {
-        CommandSender sender = ctx.getSource();
+    public Location contextualize(ExecutionContext<? extends CommandSender> ctx) {
+        CommandSender sender = ctx.source();
 
-        Vector v = components.get("vecArg", Vector.class);
+        Vector v = ctx.component("vecArg", Vector.class);
         World w = null;
-        if (components.has("worldArg")) {
-            w = components.get("worldArg", World.class);
+        if (ctx.hasComponent("worldArg")) {
+            w = ctx.component("worldArg", World.class);
         } else if (sender instanceof Entity e) {
             w = e.getWorld();
         }

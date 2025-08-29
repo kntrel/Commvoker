@@ -1,8 +1,8 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.BiComposedAssembler;
-import com.mojang.brigadier.context.CommandContext;
 import org.bukkit.command.CommandSender;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
@@ -30,7 +30,7 @@ public class BoundingBoxAssembler implements BiComposedAssembler<CommandSender, 
         return VectorAssembler.vector();
     }
     @Override
-    public BoundingBox compose(CommandContext<? extends CommandSender> ctx, Vector vec1, Vector vec2) {
+    public BoundingBox compose(ExecutionContext<? extends CommandSender> ctx, Vector vec1, Vector vec2) {
         return new BoundingBox(vec1.getX(), vec1.getY(), vec1.getZ(), vec2.getX(), vec2.getY(), vec2.getZ());
     }
 }
