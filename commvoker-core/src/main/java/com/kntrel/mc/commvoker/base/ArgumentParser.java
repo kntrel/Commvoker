@@ -1,14 +1,13 @@
 package com.kntrel.mc.commvoker.base;
 
-
-import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 class ArgumentParser<S> {
 
@@ -26,13 +25,13 @@ class ArgumentParser<S> {
         this.namesMap_ = namesMap;
         this.contextualizer_ = contextualizer;
     }
-    ArgumentParser(Function<CommandContext<? extends S>, ?> implicitContextualizer) {
-        this(EMPTY, (ctx, comp) -> implicitContextualizer.apply(ctx));
+    ArgumentParser(Function<ExecutionContext<? extends S>, ?> implicitContextualizer) {
+        this(EMPTY, implicitContextualizer::apply);
     }
 
 
     //UTIL
-    Object parse(CommandContext<? extends S> ctx) {
+    Object parse(CommandContext<? extends S> ctx, List<Object> previous, Map<String, Object> bag) {
         Map<String, Object> compMap = new HashMap<>();
 
         for (var e : this.namesMap_.entrySet()) try {
@@ -40,6 +39,6 @@ class ArgumentParser<S> {
             compMap.put(e.getValue(), o);
         } catch (IllegalArgumentException ignored) {}
 
-        return this.contextualizer_.contextualize(ctx, new Components(compMap));
+        return this.contextualizer_.contextualize(new ExecutionContext<>(ctx, compMap, previous, bag));
     }
 }

@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
@@ -12,7 +12,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
 
     Assembler<? super S, ? extends I> delegate();
 
-    T compose(CommandContext<? extends S> ctx, I object);
+    T compose(ExecutionContext<? extends S> ctx, I object);
 
     default boolean suggests() {
         return Utils.hasMethod(this.getClass(), "getSuggestions", CommandContext.class, SuggestionsBuilder.class);
@@ -30,7 +30,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(CommandContext<? extends S> ctx, Components components) {
-        return this.compose(ctx, (I) components.get("dep"));
+    default T contextualize(ExecutionContext<? extends S> ctx) {
+        return this.compose(ctx, (I) ctx.component("dep"));
     }
 }

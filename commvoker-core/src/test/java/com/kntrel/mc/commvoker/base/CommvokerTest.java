@@ -63,7 +63,7 @@ public class CommvokerTest {
         public void subCommand(String bar, String arg2, String arg3) { }
     }
 
-    @Command("root")
+    @Command("roots")
     public static class RootCommand {
         @Command(value = "{a} {b}", extend = true)
         public void root1(String a, String b) {}
@@ -153,8 +153,8 @@ public class CommvokerTest {
         commvoker.register(new RootCommand());
 
         CommandDispatcher<Object> d = commvoker.getCommandDispatcher();
-        assertHasUsage(d, "root <a> <b>");
-        assertHasUsage(d, "root <a> <b> <c>");
+        assertHasUsage(d, "roots <a> <b>");
+        assertHasUsage(d, "roots <a> <b> <c>");
 
     }
 
