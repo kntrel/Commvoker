@@ -62,7 +62,8 @@ class ArgumentResolverImplTest {
                 m,
                 paramIdx,
                 CMD_DEF,
-                paramIdx
+                paramIdx,
+                List.of()
         );
     }
 
@@ -150,7 +151,8 @@ class ArgumentResolverImplTest {
                 m,
                 0,
                 new CommandDefinition(new CommandToken[]{ CommandToken.argument("uuid") }),
-                0
+                0,
+                List.of()
         );
         assertThrows(NoSuchArgumentBindingException.class,
                 () -> resolver.resolve(badCtx));
