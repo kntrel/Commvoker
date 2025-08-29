@@ -2,6 +2,7 @@ package com.kntrel.mc.commvoker.bukkit.provided;
 
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.bukkit.provided.annotation.Sender;
 import com.kntrel.mc.commvoker.bukkit.provided.annotation.SenderWorld;
@@ -33,7 +34,7 @@ public class BukkitArgumentBindings {
             .toClass(World.class)
             .withPriority(Priority.LOW)
             .bind(),
-        SENDER_WORLD = implicit(ctx -> ((Entity) ctx.getSource()).getWorld())
+        SENDER_WORLD = implicit(ctx -> ((Entity) ctx.source()).getWorld())
             .toClass(World.class)
             .toAnnotation(Sender.class)
             .requires(s -> s instanceof Entity)
@@ -50,7 +51,7 @@ public class BukkitArgumentBindings {
             .toClass(Location.class)
             .withPriority(Priority.LOW)
             .bind(),
-        SENDER_LOCATION = implicit(ctx -> ((Entity) ctx.getSource()).getLocation())
+        SENDER_LOCATION = implicit(ctx -> ((Entity) ctx.source()).getLocation())
             .toClass(Location.class)
             .toAnnotation(Sender.class)
             .requires(s -> s instanceof Entity)
@@ -97,7 +98,7 @@ public class BukkitArgumentBindings {
                 })
                 .withPriority(Priority.HIGH)
                 .bind(),
-        SENDER_ENTITY = implicit(ctx -> (Entity) ctx.getSource())
+        SENDER_ENTITY = implicit(ctx -> (Entity) ctx.source())
                 .toClass(Entity.class)
                 .toAnnotation(Sender.class)
                 .requires(s -> s instanceof Entity)
@@ -125,16 +126,16 @@ public class BukkitArgumentBindings {
                 })
                 .withPriority(Priority.above(ENTITIES.priority()))
                 .bind(),
-        SENDER_PLAYER = implicit(ctx -> (Player) ctx.getSource())
+        SENDER_PLAYER = implicit(ctx -> (Player) ctx.source())
                 .toClass(Player.class)
                 .toAnnotation(Sender.class)
                 .requires(s -> s instanceof Player)
                 .withPriority(Priority.above(SENDER_ENTITY.priority()))
                 .bind(),
-        COMMAND_SENDER = ArgumentBinder.<CommandSender, CommandSender>implicit(CommandContext::getSource)
+        COMMAND_SENDER = ArgumentBinder.<CommandSender, CommandSender>implicit(ExecutionContext::source)
                 .toClass(CommandSender.class)
                 .bind(),
-        COMMAND_CONTEXT = ArgumentBinder.<CommandSender, CommandContext<CommandSender>>implicit(ctx -> (CommandContext<CommandSender>) ctx)
+        COMMAND_CONTEXT = ArgumentBinder.<CommandSender, CommandContext<CommandSender>>implicit(ctx -> (CommandContext<CommandSender>) ctx.commandContext())
                 .toClass((Class<CommandContext<CommandSender>>) (Class<?>) CommandContext.class)
                 .toCondition(ctx -> ctx.type() instanceof ParameterizedType pt && pt.getActualTypeArguments()[0] instanceof Class<?> c && c.equals(CommandSender.class))
                 .bind(),

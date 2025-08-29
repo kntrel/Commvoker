@@ -1,11 +1,10 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
 import com.kntrel.mc.commvoker.bukkit.internal.CraftBukkitAccessors;
-import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.coordinates.Coordinates;
 import net.minecraft.commands.arguments.coordinates.Vec3Argument;
@@ -32,9 +31,9 @@ public class VectorAssembler implements ComposedAssembler<CommandSender, Vector>
         hooK.hook("vecArg", Assembler.ofArgumentType(Vec3Argument.vec3()));
     }
     @Override
-    public Vector contextualize(CommandContext<? extends CommandSender> ctx, Components components) {
-        Coordinates coordinates = components.get("vecArg", Coordinates.class);
-        Vec3 vec3 = coordinates.getPosition((CommandSourceStack) CraftBukkitAccessors.getCommandSourceStack(ctx.getSource()));
+    public Vector contextualize(ExecutionContext<? extends CommandSender> ctx) {
+        Coordinates coordinates = ctx.component("vecArg", Coordinates.class);
+        Vec3 vec3 = coordinates.getPosition((CommandSourceStack) CraftBukkitAccessors.getCommandSourceStack(ctx.source()));
 
         return new Vector(vec3.x(), vec3.y(), vec3.z());
     }
