@@ -1,6 +1,5 @@
 package com.kntrel.mc.commvoker.bukkit.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;

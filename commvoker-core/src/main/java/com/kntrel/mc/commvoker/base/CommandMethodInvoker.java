@@ -4,6 +4,10 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 class CommandMethodInvoker<S> implements Command<S> {
 
@@ -24,14 +28,16 @@ class CommandMethodInvoker<S> implements Command<S> {
 
 
     @Override public int run(CommandContext<S> ctx) {
-        Object[] args = new Object[this.argumentParsers_.length];
-        for (int i = 0; i < args.length; i++) {
-            args[i] = this.argumentParsers_[i].parse(ctx);
+        List<Object> args = new ArrayList<>(this.argumentParsers_.length);
+        Map<String, Object> bag = new HashMap<>();
+        for (ArgumentParser<S> parser : this.argumentParsers_) {
+            Object o = parser.parse(ctx, args, bag);
+            args.add(o);
         }
 
         Object returned;
         try {
-            returned = this.method_.invoke(this.instance_, args);
+            returned = this.method_.invoke(this.instance_, args.toArray());
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

@@ -1,10 +1,10 @@
 package com.kntrel.mc.commvoker.argument.binding;
 
-import com.mojang.brigadier.context.CommandContext;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 
 @FunctionalInterface
 public interface Contextualizer<S, T> {
 
-    T contextualize(CommandContext<? extends S> context, Components components);
+    T contextualize(ExecutionContext<? extends S> ctx);
 
 }

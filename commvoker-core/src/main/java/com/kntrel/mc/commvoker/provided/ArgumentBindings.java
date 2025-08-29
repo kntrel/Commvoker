@@ -103,7 +103,11 @@ public final class ArgumentBindings {
         LIST = argumentAssembler(ctx -> {
                 ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
-                return (Assembler<Object, List<?>>) (Assembler<?, ?>) CollectionAssembler.listOf(Assembler.ofArgumentDescriptor(descriptor));
+                Assembler<?, ?> asm = Assembler.ofArgumentDescriptor(descriptor);
+                var bind = (ctx.commandTokenIndex() == ctx.command().size() - 1)
+                        ? CollectionAssembler.relaxedListOf(asm)
+                        : CollectionAssembler.listOf(asm);
+                return (Assembler<Object, List<?>>) bind;
             })
             .toClass((Class<List<?>>) (Class) List.class)
             .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
@@ -111,15 +115,22 @@ public final class ArgumentBindings {
         SET = argumentAssembler(ctx -> {
                 ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
-                return (Assembler<Object, Set<?>>) (Assembler<?, ?>) CollectionAssembler.setOf(Assembler.ofArgumentDescriptor(descriptor));
+                Assembler<?, ?> asm = Assembler.ofArgumentDescriptor(descriptor);
+                var bind = (ctx.commandTokenIndex() == ctx.command().size() - 1)
+                        ? CollectionAssembler.relaxedSetOf(asm)
+                        : CollectionAssembler.setOf(asm);
+                return (Assembler<Object, Set<?>>) bind;
             })
             .toClass((Class<Set<?>>) (Class) Set.class)
             .toCondition(ctx -> ctx.type() instanceof ParameterizedType)
             .bind(),
         ARRAY = argumentAssembler(ctx -> {
-                Class<?> type = ((Class<?>) ctx.type()).componentType();
+                Class<Object> type = (Class<Object>) ((Class<Object>) ctx.type()).componentType();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
-                return ArrayAssembler.arrayOf((Class<Object>) type, (Assembler<Object, Object>) Assembler.ofArgumentDescriptor(descriptor));
+                Assembler<Object, Object> asm = (Assembler<Object, Object>) Assembler.ofArgumentDescriptor(descriptor);
+                return (ctx.commandTokenIndex() == ctx.command().size() - 1)
+                        ? ArrayAssembler.relaxedArrayOf(type, asm)
+                        : ArrayAssembler.arrayOf(type, asm);
             })
             .toCondition(ctx -> ctx.type() instanceof Class<?> c && c.isArray())
             .bind(),

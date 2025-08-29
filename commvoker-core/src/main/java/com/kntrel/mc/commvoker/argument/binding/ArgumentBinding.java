@@ -2,6 +2,7 @@ package com.kntrel.mc.commvoker.argument.binding;
 
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.util.Priority;
 import com.mojang.brigadier.context.CommandContext;
@@ -13,7 +14,7 @@ public sealed interface ArgumentBinding<S, C extends ParameterContext, T> extend
 
     non-sealed interface Implicit<S, T> extends ArgumentBinding<S, ParameterContext, T> {
 
-        Function<CommandContext<? extends S>, T> implyer();
+        Function<ExecutionContext<? extends S>, T> implyer();
     }
 
     non-sealed interface Descriptive<S, T> extends ArgumentBinding<S, ArgumentContext, T> {

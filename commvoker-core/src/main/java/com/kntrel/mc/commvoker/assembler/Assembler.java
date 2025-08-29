@@ -1,11 +1,8 @@
 package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
-import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.context.CommandContext;
 
 public sealed interface Assembler<S, T> extends Contextualizer<S, T> permits EndAssembler, ComposedAssembler {
 

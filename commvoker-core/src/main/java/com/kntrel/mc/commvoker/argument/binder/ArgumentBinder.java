@@ -2,6 +2,7 @@ package com.kntrel.mc.commvoker.argument.binder;
 
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
@@ -25,7 +26,7 @@ public class ArgumentBinder<S, T> {
     public static <S, T> Descriptive<S, T> argumentAssembler(Supplier<Assembler<S, T>> supplier) {
         return argumentAssembler((ctx) -> supplier.get());
     }
-    public static <S, T> Implicit<S, T> implicit(Function<CommandContext<? extends S>, T> implyer) {
+    public static <S, T> Implicit<S, T> implicit(Function<ExecutionContext<? extends S>, T> implyer) {
         return new Implicit<>(implyer);
     }
 
@@ -110,11 +111,11 @@ public class ArgumentBinder<S, T> {
     public static class Implicit<S, T> extends Base<S, T, ParameterContext, Implicit<S, T>> {
 
         //FIELDS
-        private final Function<CommandContext<? extends S>, T> implyer_;
+        private final Function<ExecutionContext<? extends S>, T> implyer_;
 
 
         //CONSTRUCTOR
-        private Implicit(Function<CommandContext<? extends S>, T> implyer) {
+        private Implicit(Function<ExecutionContext<? extends S>, T> implyer) {
             this.implyer_ = implyer;
         }
 

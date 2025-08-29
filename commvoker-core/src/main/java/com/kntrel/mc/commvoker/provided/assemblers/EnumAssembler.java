@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.mojang.brigadier.context.CommandContext;
@@ -49,7 +50,7 @@ public class EnumAssembler<T extends Enum<T>> implements TransformAssembler<Obje
         return builder.buildFuture();
     }
     @Override
-    public T compose(CommandContext<?> ctx, String object) {
+    public T compose(ExecutionContext<?> ctx, String object) {
         return Enum.valueOf(this.enum_, object);
     }
 }
