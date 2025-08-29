@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
@@ -8,15 +9,12 @@ import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
 import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.context.CommandContext;
 import org.junit.jupiter.api.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.junit.jupiter.api.Assertions.*;
-import static com.kntrel.mc.commvoker.test.Assertions.*;
 
 
 class CommvokerExecutionTest {
@@ -87,8 +85,8 @@ class CommvokerExecutionTest {
         }
 
         @Override
-        public String compose(CommandContext<?> ctx, String object) {
-            return ctx.getSource().getClass().getSimpleName() + "-" + object;
+        public String compose(ExecutionContext<?> ctx, String object) {
+            return ctx.source().getClass().getSimpleName() + "-" + object;
         }
     }
 

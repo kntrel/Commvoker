@@ -5,11 +5,11 @@ import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.SetMap;
 import com.mojang.brigadier.context.CommandContext;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
@@ -118,12 +118,12 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
     }
 
     @Override @SuppressWarnings("unchecked")
-    public Function<CommandContext<? extends S>, ?> resolve(ParameterContext ctx) {
+    public Function<ExecutionContext<? extends S>, ?> resolve(ParameterContext ctx) {
         PriorityQueue<ArgumentBinding.Implicit<? super S, ?>> matches = this.registryImplicit_.resolve(ctx);
         ArgumentBinding.Implicit<? super S, ?> binding = matches.poll();
         if (binding == null) {
             throw new NoSuchArgumentBindingException(ctx);
         }
-        return (Function<CommandContext<? extends S>, ?>) (Function<?, ?>) binding.implyer();
+        return (Function<ExecutionContext<? extends S>, ?>) (Function<?, ?>) binding.implyer();
     }
 }

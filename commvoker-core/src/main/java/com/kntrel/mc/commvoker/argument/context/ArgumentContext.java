@@ -56,7 +56,7 @@ public class ArgumentContext extends ParameterContext {
         if (back < 0) {
             throw new IndexOutOfBoundsException("Previous item offset must be >= 0. Provided: " + back);
         }
-        int i = this.previous_.size() - back;
+        int i = this.previous_.size() - 1 - back;
         if (i < 0) { i = 0; }
         return this.previous_.get(i);
     }

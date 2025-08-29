@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.binder.ArgumentBinder;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
@@ -71,7 +72,7 @@ public class CommandParserParseTest {
     public CommandParserParseTest() {
         ArgumentResolverImpl<Object> resolver = new ArgumentResolverImpl<>();
         ArgumentBindings.all().forEach(resolver::register);
-        resolver.register(ArgumentBinder.<Object, Object>implicit(CommandContext::getSource)
+        resolver.register(ArgumentBinder.<Object, Object>implicit(ExecutionContext::source)
                 .toAnnotation(MockImplicit.class)
                 .toClass(Object.class)
                 .bind());

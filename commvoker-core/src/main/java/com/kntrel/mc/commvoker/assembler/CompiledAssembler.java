@@ -1,7 +1,7 @@
 package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
-import com.mojang.brigadier.context.CommandContext;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,12 +61,12 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
         }
 
         @Override
-        public T contextualize(CommandContext<? extends S> ctx, Components components) {
+        public T contextualize(ExecutionContext<? extends S> ctx) {
             Map<String, Object> compMap = this.children_.entrySet().stream().collect(Collectors.toMap(
                     Map.Entry::getKey,
-                    e -> e.getValue().contextualize(ctx, components)
+                    e -> e.getValue().contextualize(ctx)
             ));
-            return this.assembler_.contextualize(ctx, new Components(compMap));
+            return this.assembler_.contextualize(ExecutionContext.copyOf(ctx, compMap));
         }
 
         @Override @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -184,14 +184,14 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
         }
 
         @Override
-        public T contextualize(CommandContext<? extends S> ctx, Components components) {
+        public T contextualize(ExecutionContext<? extends S> ctx) {
             Map<String, Object> compMap = this.argMap_.entrySet().stream()
-                    .filter(e -> components.has(e.getValue()))
+                    .filter(e -> ctx.hasComponent(e.getValue()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
-                            e -> components.get(e.getValue())
+                            e -> ctx.component(e.getValue())
                     ));
-            return this.assembler_.contextualize(ctx, new Components(compMap));
+            return this.assembler_.contextualize(ExecutionContext.copyOf(ctx, compMap));
         }
     }
 }

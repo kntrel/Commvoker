@@ -4,6 +4,7 @@ import com.kntrel.mc.commvoker.argument.binding.NameSupplier;
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.command.*;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
@@ -109,7 +110,7 @@ class CommandParser<S> {
         for (int i = 0; i < params.length; i++) {
             Parameter param = params[i];
             try {
-                Function<CommandContext<? extends S>, ?> arg = this.argumentResolver_.resolve(new ParameterContext(param, param.getParameterizedType(), method, i));
+                Function<ExecutionContext<? extends S>, ?> arg = this.argumentResolver_.resolve(new ParameterContext(param, param.getParameterizedType(), method, i));
                 argumentParsers[i] = new ArgumentParser<>(arg);
                 continue;
             } catch (NoSuchArgumentBindingException ignores) {}

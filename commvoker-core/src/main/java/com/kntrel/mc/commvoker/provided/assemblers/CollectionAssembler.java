@@ -1,8 +1,8 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
-import com.kntrel.mc.commvoker.argument.binding.Components;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.assembler.EndAssembler;
@@ -106,17 +106,17 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     }
 
     @Override
-    public C contextualize(CommandContext<? extends S> context, Components components) {
+    public C contextualize(ExecutionContext<? extends S> ctx) {
         List<T> list = new ArrayList<>(this.max_);
         outer : for (int i = 0; i < this.max_; i++) {
             Map<String, Object> compMap = new HashMap<>();
             for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
-                Object o = components.get(entry.getValue());
+                Object o = ctx.component(entry.getValue());
                 if (o == null) { continue outer; }
                 compMap.put(entry.getKey(), o);
             }
 
-            T elm = this.contextualizer_.contextualize(context, new Components(compMap));
+            T elm = this.contextualizer_.contextualize(ExecutionContext.copyOf(ctx, compMap));
             list.add(elm);
         }
 

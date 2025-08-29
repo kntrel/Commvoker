@@ -1,21 +1,14 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for CollectionAssembler in strict (non-greedy) and relaxed (greedy) modes.
- * Uses a minimal leaf EndAssembler<String> that captures one word as "v".
- */
 public class CollectionAssemblerTest {
-
-
-    /* ------------ helpers ------------ */
 
     private static List<String> collectArgumentLabels(CommandTemplate<?> t) {
         List<String> labels = new ArrayList<>();
@@ -42,10 +35,10 @@ public class CollectionAssemblerTest {
         return false;
     }
 
-    private static Components comps(Object... kv) {
+    private static <S> ExecutionContext<S> context(Object... kv) {
         Map<String, Object> m = new HashMap<>();
         for (int i = 0; i + 1 < kv.length; i += 2) m.put((String) kv[i], kv[i + 1]);
-        return new Components(m);
+        return new ExecutionContext<>(null, m, List.of(), Map.of());
     }
 
     /* ========================================================================== */
@@ -71,7 +64,7 @@ public class CollectionAssemblerTest {
             assertTrue(args.contains("arg0"), "expected v0 in greedy max=1 template");
 
             // Contextualize one element
-            var out = col.contextualize(null, comps("arg0", "A"));
+            var out = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), out);
         }
 
@@ -88,15 +81,15 @@ public class CollectionAssemblerTest {
             assertTrue(args.containsAll(List.of("arg0", "arg1", "arg2")));
 
             // Simulate user typed: v0 (end early) -> only v0 participates
-            var early = col.contextualize(null, comps("arg0", "A"));
+            var early = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), early);
 
             // Simulate "... and <last>" i.e., v0 and v2
-            var andLast = col.contextualize(null, comps("arg0", "A", "arg2", "C"));
+            var andLast = col.contextualize(context("arg0", "A", "arg2", "C"));
             assertEquals(List.of("A", "C"), andLast);
 
             // Simulate v0 v1 (no last) — greedy mode collects in index order
-            var twoPlain = col.contextualize(null, comps("arg0", "A", "arg1", "B"));
+            var twoPlain = col.contextualize(context("arg0", "A", "arg1", "B"));
             assertEquals(List.of("A", "B"), twoPlain);
         }
 
@@ -110,14 +103,14 @@ public class CollectionAssemblerTest {
             assertTrue(containsLiteral(tpl, "and"));
 
             // With no components provided, contextualizer yields empty list (it will scan and find nothing)
-            var none = col.contextualize(null, comps());
+            var none = col.contextualize(context());
             assertEquals(List.of(), none);
 
             // With one or more values present, it collects them
-            var one = col.contextualize(null, comps("arg0", "A"));
+            var one = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), one);
 
-            var many = col.contextualize(null, comps("arg0", "A", "arg1", "B", "arg2", "C"));
+            var many = col.contextualize(context("arg0", "A", "arg1", "B", "arg2", "C"));
             assertEquals(List.of("A", "B", "C"), many);
         }
     }
@@ -142,7 +135,7 @@ public class CollectionAssemblerTest {
             var args = collectArgumentLabels(tpl);
             assertEquals(List.of("arg0"), args);
 
-            var out = col.contextualize(null, comps("arg0", "A"));
+            var out = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), out);
         }
 
@@ -157,16 +150,16 @@ public class CollectionAssemblerTest {
 
             // Contextualization order still index-based:
             // emulate "only v0"
-            var only = col.contextualize(null, comps("arg0", "A"));
+            var only = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), only);
 
             // emulate "v0 and v2" (multi via 'and last')
-            var multi = col.contextualize(null, comps("arg0", "A", "arg2", "C"));
+            var multi = col.contextualize(context("arg0", "A", "arg2", "C"));
             assertEquals(List.of("A", "C"), multi);
 
             // If user provided v0 v1 (no last), contextualizer still sees 2 items,
             // but the syntax wouldn't parse without 'and' — this checks runtime mapping only:
-            var rawTwo = col.contextualize(null, comps("arg0", "A", "arg1", "B"));
+            var rawTwo = col.contextualize(context("arg0", "A", "arg1", "B"));
             assertEquals(List.of("A", "B"), rawTwo);
         }
 
@@ -181,15 +174,15 @@ public class CollectionAssemblerTest {
             assertTrue(containsLiteral(tpl, "and"),  "strict(min=0) should expose 'and' for multi");
 
             // none → empty
-            var none = col.contextualize(null, comps());
+            var none = col.contextualize(context());
             assertEquals(List.of(), none);
 
             // only
-            var only = col.contextualize(null, comps("arg0", "A"));
+            var only = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), only);
 
             // v0 and v2
-            var many = col.contextualize(null, comps("arg0", "A", "arg2", "C"));
+            var many = col.contextualize(context("arg0", "A", "arg2", "C"));
             assertEquals(List.of("A", "C"), many);
         }
 
@@ -206,11 +199,11 @@ public class CollectionAssemblerTest {
             assertTrue(args.containsAll(List.of("arg0","arg1","arg2","arg3")));
 
             // Contextualizer order with 'and last' (v0, v3)
-            var ctx = col.contextualize(null, comps("arg0", "A", "arg3", "D"));
+            var ctx = col.contextualize(context("arg0", "A", "arg3", "D"));
             assertEquals(List.of("A","D"), ctx);
 
             // Single element present: runtime gives 1, but parse would be rejected (no 'only' with min=2)
-            var single = col.contextualize(null, comps("arg0", "A"));
+            var single = col.contextualize(context("arg0", "A"));
             assertEquals(List.of("A"), single);
         }
     }
@@ -239,11 +232,11 @@ public class CollectionAssemblerTest {
         var greedy = CollectionAssembler.relaxedListOf(el, /*min*/1, /*max*/4);
 
         // Provide v0, v3 (emulates "... and <last>")
-        var out = greedy.contextualize(null, comps("arg0","A","arg3","D"));
+        var out = greedy.contextualize(context("arg0","A","arg3","D"));
         assertEquals(List.of("A","D"), out);
 
         // Provide v1, v3 (skips v0)
-        var out2 = greedy.contextualize(null, comps("arg1","B","arg3","D"));
+        var out2 = greedy.contextualize(context("arg1","B","arg3","D"));
         assertEquals(List.of("B","D"), out2);
     }
 }

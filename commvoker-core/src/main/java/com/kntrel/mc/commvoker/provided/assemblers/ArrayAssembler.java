@@ -1,9 +1,8 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.TransformAssembler;
-import com.mojang.brigadier.context.CommandContext;
 import java.lang.reflect.Array;
 import java.util.List;
 
@@ -40,7 +39,7 @@ public class ArrayAssembler<S, T> implements TransformAssembler<S, List<T>, T[]>
     }
 
     @Override @SuppressWarnings("unchecked")
-    public T[] compose(CommandContext<? extends S> ctx, List<T> upstream) {
+    public T[] compose(ExecutionContext<? extends S> ctx, List<T> upstream) {
         T[] out = (T[]) Array.newInstance(this.arrayType_, upstream.size());
         for (int i = 0; i < out.length; i++) {
             out[i] = upstream.get(i);

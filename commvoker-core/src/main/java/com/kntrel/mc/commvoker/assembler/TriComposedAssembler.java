@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.mc.commvoker.argument.binding.Components;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
@@ -13,7 +13,7 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     Assembler<? super S, ? extends B> secondDelegate();
     Assembler<? super S, ? extends C> thirdDelegate();
 
-    T compose(CommandContext<? extends S> ctx, A first, B second, C third);
+    T compose(ExecutionContext<? extends S> ctx, A first, B second, C third);
 
     default CompletableFuture<Suggestions> getFirstSuggestions(CommandContext<S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
@@ -50,8 +50,8 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(CommandContext<? extends S> ctx, Components components) {
-        return this.compose(ctx, (A) components.get("dep1"), (B) components.get("dep2"), (C) components.get("dep3"));
+    default T contextualize(ExecutionContext<? extends S> ctx) {
+        return this.compose(ctx, (A) ctx.component("dep1"), (B) ctx.component("dep2"), (C) ctx.component("dep3"));
     }
 
 }

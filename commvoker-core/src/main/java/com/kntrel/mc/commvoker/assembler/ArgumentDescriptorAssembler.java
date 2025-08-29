@@ -1,7 +1,7 @@
 package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
-import com.mojang.brigadier.context.CommandContext;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 
 public class ArgumentDescriptorAssembler<S, T> implements EndAssembler<S, T> {
 
@@ -29,7 +29,7 @@ public class ArgumentDescriptorAssembler<S, T> implements EndAssembler<S, T> {
         return this.template_;
     }
     @Override
-    public T contextualize(CommandContext<? extends S> context, Components components) {
-        return this.contextualizer_.contextualize(context, components);
+    public T contextualize(ExecutionContext<? extends S> context) {
+        return this.contextualizer_.contextualize(context);
     }
 }
