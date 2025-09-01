@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import java.lang.reflect.InvocationTargetException;
@@ -28,16 +29,17 @@ class CommandMethodInvoker<S> implements Command<S> {
 
 
     @Override public int run(CommandContext<S> ctx) {
-        List<Object> args = new ArrayList<>(this.argumentParsers_.length);
+        List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>(this.argumentParsers_.length);
         Map<String, Object> bag = new HashMap<>();
         for (ArgumentParser<S> parser : this.argumentParsers_) {
-            Object o = parser.parse(ctx, args, bag);
-            args.add(o);
+            InstancedArgumentDescriptor<S, ?> desc = parser.parse(ctx, descriptors, bag);
+            descriptors.add(desc);
         }
 
+        Object[] args = descriptors.stream().map(InstancedArgumentDescriptor::value).toArray();
         Object returned;
         try {
-            returned = this.method_.invoke(this.instance_, args.toArray());
+            returned = this.method_.invoke(this.instance_, args);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.argument.context;
 
+import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.List;
 import java.util.Map;
@@ -8,26 +9,26 @@ public class ExecutionContext<S> {
 
     //FACTORY
     public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, Map<String, Object> components) {
-        return new ExecutionContext<>(original.commandContext(), components, original.previousArguments(), original.bag_);
+        return new ExecutionContext<>(original.commandContext(), components, original.previousArgumentDescriptors(), original.bag_);
     }
-    public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, List<Object> previous) {
+    public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, List<InstancedArgumentDescriptor<S, ?>> previous) {
         return new ExecutionContext<>(original.commandContext(), original.components_, previous, original.bag_);
     }
 
 
 
     //FIELDS
-    private final CommandContext<S> commandContext_;
+    private final CommandContext<? extends S> commandContext_;
     private final Map<String, Object> components_;
-    private final List<Object> previous_;
+    private final List<InstancedArgumentDescriptor<S, ?>> previous_;
     private final Map<String, Object> bag_;
     
     
     //CONSTRUCTOR
     public ExecutionContext(
-            CommandContext<S> commandContext,
+            CommandContext<? extends S> commandContext,
             Map<String, Object> components,
-            List<Object> previous,
+            List<InstancedArgumentDescriptor<S, ?>> previous,
             Map<String, Object> bag
     ) {
         this.commandContext_ = commandContext;
@@ -38,8 +39,7 @@ public class ExecutionContext<S> {
     
     
     //GETTERS
-    public CommandContext<S> commandContext() { return this.commandContext_; }
-    public List<Object> previousArguments() { return this.previous_; }
+    public CommandContext<? extends S> commandContext() { return this.commandContext_; }
     public Map<String, Object> bag() { return this.bag_; }
     
     
@@ -79,7 +79,7 @@ public class ExecutionContext<S> {
     }
     public Object previousArgument() {
         if (this.previous_.isEmpty()) { return null; }
-        return this.previous_.getLast();
+        return this.previous_.getLast().value();
     }
     public Object previousArgument(int index) {
         if (index < 0) {
@@ -88,7 +88,7 @@ public class ExecutionContext<S> {
         if (this.previous_.isEmpty()) { return null; }
         index = this.previous_.size() - 1 - index;
         if (index < 0) { index = 0; }
-        return this.previous_.get(index);
+        return this.previous_.get(index).value();
     }
     public <T> T previousArgument(int index, Class<T> type) {
         Object o = this.previousArgument(index);
@@ -106,6 +106,14 @@ public class ExecutionContext<S> {
             }
         }
         return null;
+    }
+    public List<Object> previousArguments() {
+        return this.previous_.stream()
+                .map(d -> (Object) d.value())
+                .toList();
+    }
+    public List<InstancedArgumentDescriptor<S, ?>> previousArgumentDescriptors() {
+        return this.previous_;
     }
 
 

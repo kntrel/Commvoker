@@ -1,16 +1,14 @@
 package com.kntrel.mc.commvoker.assembler;
 
+import com.kntrel.mc.commvoker.argument.binding.Suggester;
 import com.kntrel.util.tuple.Pair;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-import java.util.HashMap;
+
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class AssemblerHook<S> {
 
-    public record Node<S>(Assembler<? super S, ?> assembler, SuggestionProvider<S> suggester)
-    implements Pair<Assembler<? super S, ?>, SuggestionProvider<S>> {
+    public record Node<S>(Assembler<? super S, ?> assembler, Suggester<S> suggester)
+    implements Pair<Assembler<? super S, ?>, Suggester<S>> {
 
         @Override
         public Assembler<? super S, ?> first() {
@@ -18,17 +16,17 @@ public class AssemblerHook<S> {
         }
 
         @Override
-        public SuggestionProvider<S> second() {
+        public Suggester<S> second() {
             return this.suggester();
         }
     }
     public static class Handle<S> {
 
         private final Assembler<? super S, ?> assembler_;
-        private SuggestionProvider<S> suggester_;
+        private Suggester<S> suggester_;
 
         private Handle(Assembler<? super S, ?> assembler) { this.assembler_ = assembler; }
-        public void suggests(SuggestionProvider<S> suggester) { this.suggester_ = suggester; }
+        public void suggests(Suggester<S> suggester) { this.suggester_ = suggester; }
         private Node<S> node() { return new Node<>(this.assembler_, this.suggester_); }
 
     }
@@ -58,6 +56,4 @@ public class AssemblerHook<S> {
         handleMap_.forEach((k, v) -> out.put(k, v.node()));
         return out;
     }
-
-
 }

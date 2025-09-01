@@ -45,7 +45,7 @@ public class EnumAssembler<T extends Enum<T>> implements TransformAssembler<Obje
         return StringAssembler.word();
     }
     @Override
-    public CompletableFuture<Suggestions> getSuggestions(CommandContext<Object> context, SuggestionsBuilder builder) {
+    public CompletableFuture<Suggestions> suggest(ExecutionContext<?> context, SuggestionsBuilder builder) {
         this.names_.forEach(builder::suggest);
         return builder.buildFuture();
     }

@@ -1,7 +1,7 @@
 package com.kntrel.mc.commvoker.argument.binding;
 
 import com.mojang.brigadier.arguments.ArgumentType;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
+
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -35,6 +35,9 @@ public class CommandTemplate<S> {
     }
     public static <S> Exit<S> exitPoint() {
         return Exit.instance();
+    }
+    public static <S> CommandTemplate<S> empty() {
+        return new CommandTemplate<>(Collections.emptyList());
     }
 
 
@@ -171,7 +174,7 @@ public class CommandTemplate<S> {
 
         //FIELDS
         private final ArgumentType<?> arg_;
-        private SuggestionProvider<? extends S> suggester_;
+        private Suggester<? extends S> suggester_;
 
         //CONSTRUCTOR
         private Argument(String label, ArgumentType<?> argumentType) {
@@ -180,11 +183,11 @@ public class CommandTemplate<S> {
         }
 
         //SETTERS
-        public void setSuggestionProvider(SuggestionProvider<? extends S> suggester) { this.suggester_ = suggester; }
+        public void setSuggestionProvider(Suggester<? extends S> suggester) { this.suggester_ = suggester; }
 
         //GETTERS
         public ArgumentType<?> argumentType() { return this.arg_; }
-        public SuggestionProvider<? extends S> suggestionProvider() { return this.suggester_; }
+        public Suggester<? extends S> suggester() { return this.suggester_; }
         @Override public Argument<S> clone() {
             Argument<S> clone = new Argument<>(this.label(), this.arg_);
             clone.requirement_ = this.requirement_;
@@ -209,7 +212,7 @@ public class CommandTemplate<S> {
     }
 
     public interface OngoingArgument<S> extends Ongoing<S> {
-        Ongoing<S> suggests(SuggestionProvider<S> suggester);
+        Ongoing<S> suggests(Suggester<S> suggester);
     }
 
     public interface Terminated<S> {
@@ -250,7 +253,7 @@ public class CommandTemplate<S> {
             return this;
         }
         @Override
-        public Ongoing<S> suggests(SuggestionProvider<S> suggester) {
+        public Ongoing<S> suggests(Suggester<S> suggester) {
             if (this.cursor_ instanceof CommandTemplate.Argument<S> arg) {
                 arg.setSuggestionProvider(suggester);
             }
