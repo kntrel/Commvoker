@@ -31,14 +31,20 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
         Map<String, Object> bag = new HashMap<>();
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>();
+        ArgumentParser<S> lastParser = null;
         for (ArgumentParser<S> parser : this.parsers_) {
-            if (!parser.canParse(context)) { break; }
+            if (!parser.canParse(context)) {
+                lastParser = parser;
+                break;
+            }
 
             List<InstancedArgumentDescriptor<S, ?>> copy = List.copyOf(descriptors);
             InstancedArgumentDescriptor<S, ?> desc = new LazyArgumentDescriptor<>(parser, context, copy, bag);
             descriptors.add(desc);
         }
-        ExecutionContext<S> execCtx = new ExecutionContext<>(context, Map.of(), descriptors, bag);
+
+        Map<String, Object> compMap = (lastParser != null) ? lastParser.components(context) : Collections.emptyMap();
+        ExecutionContext<S> execCtx = new ExecutionContext<>(context, compMap, descriptors, bag);
         return this.suggester_.suggest(execCtx, builder);
     }
 

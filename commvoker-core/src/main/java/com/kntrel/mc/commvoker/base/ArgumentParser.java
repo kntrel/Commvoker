@@ -40,14 +40,7 @@ class ArgumentParser<S> {
 
     //UTIL
     InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
-        Map<String, Object> compMap = new HashMap<>();
-
-        for (var e : this.namesMap_.entrySet()) try {
-            Object o = ctx.getArgument(e.getKey(), Object.class);
-            compMap.put(e.getValue(), o);
-        } catch (IllegalArgumentException ignored) {}
-
-        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, compMap, previous, bag));
+        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, this.components(ctx), previous, bag));
         return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
     }
 
@@ -63,5 +56,16 @@ class ArgumentParser<S> {
         }
 
         return true;
+    }
+
+    Map<String, Object> components(CommandContext<?> ctx) {
+        Map<String, Object> compMap = new HashMap<>();
+
+        for (var e : this.namesMap_.entrySet()) try {
+            Object o = ctx.getArgument(e.getKey(), Object.class);
+            compMap.put(e.getValue(), o);
+        } catch (IllegalArgumentException ignored) {}
+
+        return compMap;
     }
 }

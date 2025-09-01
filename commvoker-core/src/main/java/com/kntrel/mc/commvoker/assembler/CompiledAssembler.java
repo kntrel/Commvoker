@@ -2,7 +2,10 @@ package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -85,7 +88,7 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
                 if (sug != null) {
                     for (CommandTemplate.Node<? super S> r : ct.trees()) {
                         switch (r) {
-                            case CommandTemplate.Argument<? super S> arg -> arg.setSuggestionProvider(sug);
+                            case CommandTemplate.Argument<? super S> arg -> arg.setSuggestionProvider(new ComposesSuggester<S>(sug, this.children_));
                             default -> {}
                         }
                     }
@@ -190,6 +193,36 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
                             e -> ctx.component(e.getValue())
                     ));
             return this.assembler_.contextualize(ExecutionContext.copyOf(ctx, compMap));
+        }
+    }
+
+    private static final class ComposesSuggester<S> implements Suggester<S> {
+
+        //FIELDS
+        private final Suggester<? extends S> delegate_;
+        private final LinkedHashMap<String, CompiledAssembler<? super S, ?>> children_;
+
+        //CONSTRUCTOR
+        ComposesSuggester(Suggester<? extends S> delegate, LinkedHashMap<String, CompiledAssembler<? super S, ?>> children) {
+            this.delegate_ = delegate;
+            this.children_ = children;
+        }
+
+        //IMPLEMENTATION
+        @Override
+        public CompletableFuture<Suggestions> suggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder builder) {
+            Map<String, Object> compMap = new HashMap<>();
+
+            for (var e : this.children_.entrySet()) {
+                CompiledAssembler<? super S, ?> child = e.getValue();
+                Object o;
+                try {
+                    o = child.contextualize(ctx);
+                } catch (Throwable ignored) { continue; }
+                if (o != null) { compMap.put(e.getKey(), o); }
+            }
+
+            return ((Suggester<S>) this.delegate_).suggest(ExecutionContext.copyOf(ctx, compMap), builder);
         }
     }
 }
