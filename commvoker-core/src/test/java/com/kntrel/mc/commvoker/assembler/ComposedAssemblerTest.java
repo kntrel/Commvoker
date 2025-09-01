@@ -56,7 +56,7 @@ public class ComposedAssemblerTest {
         this.src = new Object();
 
         commvoker.getArgumentRegistry().register(
-                ArgumentBinder.argumentAssembler(PersonAssembler::new)
+                ArgumentBinder.argumentAssembler(() -> new PersonAssembler())
                         .toClass(Person.class)
                         .bind()
         );

@@ -101,7 +101,7 @@ public class ExecutionContextTest {
                 .toClass(Planet.class)
                 .bind());
         this.commvoker.getArgumentRegistry().register(ArgumentBinder
-                .argumentAssembler(PersonAssembler::new)
+                .argumentAssembler(() -> new PersonAssembler(ctx -> this.holder.ctx = ctx))
                 .toClass(Person.class)
                 .bind());
         this.commvoker.register(this.holder);
@@ -175,6 +175,23 @@ public class ExecutionContextTest {
         Person previousPerson = assertInstanceOf(Person.class, executionContext.previousArgument());
         assertEquals("Obi Wan", previousPerson.name());
         assertEquals(53, previousPerson.age());
+    }
+
+    @Test void suggestionContextComponents() {
+        this.holder.ctx = null;
+        CommandDispatcher<Object> dispatcher = this.commvoker.getCommandDispatcher();
+        ParseResults<Object> results = assertDoesNotThrow(() -> dispatcher.parse("planet tp \"Obi Wan\" ", SRC));
+        assertNotNull(results);
+        CompletableFuture<Suggestions> future = assertDoesNotThrow(() -> dispatcher.getCompletionSuggestions(results));
+        assertNotNull(future);
+        Suggestions suggestions = assertDoesNotThrow(() -> future.get());
+        assertNotNull(suggestions);
+
+        ExecutionContext<?> executionContext = this.holder.ctx;
+        assertNotNull(executionContext);
+        assertTrue(executionContext.hasComponent("dep1"));
+        String name = assertDoesNotThrow(() -> executionContext.component("dep1", String.class));
+        assertEquals("Obi Wan", name);
     }
 
 

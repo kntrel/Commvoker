@@ -40,6 +40,25 @@ class ArgumentParser<S> {
 
     //UTIL
     InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
+        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, this.components(ctx), previous, bag));
+        return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
+    }
+
+    boolean canParse(CommandContext<?> ctx) {
+        if (this.namesMap_.isEmpty()) return true;
+
+        for (String key : this.namesMap_.keySet()) {
+            try {
+                ctx.getArgument(key, Object.class);
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    Map<String, Object> components(CommandContext<?> ctx) {
         Map<String, Object> compMap = new HashMap<>();
 
         for (var e : this.namesMap_.entrySet()) try {
@@ -47,8 +66,7 @@ class ArgumentParser<S> {
             compMap.put(e.getValue(), o);
         } catch (IllegalArgumentException ignored) {}
 
-        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, compMap, previous, bag));
-        return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
+        return compMap;
     }
 
     boolean canParse(CommandContext<?> ctx) {
