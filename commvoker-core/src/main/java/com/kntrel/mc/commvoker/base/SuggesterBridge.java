@@ -1,61 +1,87 @@
 package com.kntrel.mc.commvoker.base;
 
-
-import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
-import com.kntrel.mc.commvoker.argument.descriptor.CompiledArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
+import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.argument.binding.Suggester;
+import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.context.ParsedCommandNode;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.mojang.brigadier.tree.CommandNode;
-
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 class SuggesterBridge<S> implements SuggestionProvider<S> {
 
     private final Suggester<S> suggester_;
-    private final IdentityHashMap<CommandNode<S>, CompiledArgumentDescriptor<S, ?>> contextMap_;
+    private final ArgumentParser<S>[] parsers_;
 
-    public SuggesterBridge(Suggester<S> suggester, IdentityHashMap<CommandNode<S>, CompiledArgumentDescriptor<S, ?>> contextMap) {
+
+    //CONSTRUCTOR
+    SuggesterBridge(Suggester<S> suggester, ArgumentParser<S>[] parsers) {
         this.suggester_ = suggester;
-        this.contextMap_ = contextMap;
+        this.parsers_ = parsers;
     }
 
 
     @Override
     public CompletableFuture<Suggestions> getSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-
-        ExecutionContext<S> execCtx = new ExecutionContext<>(context, Collections.emptyMap(), Collections.emptyList(), new HashMap<>());
-        List<CommandNode<S>> path = context.getNodes().stream().map(ParsedCommandNode::getNode).toList();
+        Map<String, Object> bag = new HashMap<>();
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>();
+        for (ArgumentParser<S> parser : this.parsers_) {
+            if (!parser.canParse(context)) { break; }
 
-        CompiledArgumentDescriptor<S, ?> current = null;
-        Collection<CommandNode<S>> upstream = List.of();
-        for (CommandNode<S> node : path) {
-            if (current == null) {
-                current = this.contextMap_.get(node);
-                if (current == null) { break; }
-                upstream = node.getChildren();
-                continue;
-            }
+            List<InstancedArgumentDescriptor<S, ?>> copy = List.copyOf(descriptors);
+            InstancedArgumentDescriptor<S, ?> desc = new LazyArgumentDescriptor<>(parser, context, copy, bag);
+            descriptors.add(desc);
+        }
+        ExecutionContext<S> execCtx = new ExecutionContext<>(context, Map.of(), descriptors, bag);
+        return this.suggester_.suggest(execCtx, builder);
+    }
 
-            if (!upstream.contains(node)) try {
-                Object val = current.contextualizer().contextualize(ExecutionContext.copyOf(execCtx, descriptors));
-                descriptors.add(InstancedArgumentDescriptor.of((TypedArgumentDescriptor<S, Object>) current, val));
-                current = null;
-                continue;
-            } catch (Throwable t) {
-                break;
-            }
 
-            upstream = node.getChildren();
+    private static class LazyArgumentDescriptor<S, T> implements InstancedArgumentDescriptor<S, T> {
+
+        //FIELDS
+        private final ArgumentDescriptor<S, T> delegate_;
+        private final ArgumentParser<S> parser_;
+        private final CommandContext<S> context_;
+        private final List<InstancedArgumentDescriptor<S, ?>> previous_;
+        private final Map<String, Object> bag_;
+        private InstancedArgumentDescriptor<S, T> cached_ = null;
+
+
+        //CONSTRUCTOR
+        LazyArgumentDescriptor(
+                ArgumentParser<S> parser,
+                CommandContext<S> context,
+                List<InstancedArgumentDescriptor<S, ?>> previous,
+                Map<String, Object> bag
+        ) {
+            this.delegate_ = (ArgumentDescriptor<S, T>) parser.argumentDescriptor();
+            this.parser_ = parser;
+            this.context_ = context;
+            this.previous_ = previous;
+            this.bag_ = bag;
         }
 
-        return this.suggester_.suggest(execCtx, builder);
+        //IMPLEMENTATION
+        @Override public CommandTemplate<S> template() { return this.delegate_.template(); }
+        @Override public Contextualizer<S, T> contextualizer() { return this.delegate_.contextualizer(); }
+        @Override public Type type() { return this.resolve().type(); }
+        @Override public T value() { return this.resolve().value(); }
+
+        //PRIVATE
+        InstancedArgumentDescriptor<S, T> resolve() {
+            if (this.cached_ != null) {
+                return this.cached_;
+            }
+            InstancedArgumentDescriptor<S, ?> desc = this.parser_.parse(this.context_, this.previous_, this.bag_);
+            this.cached_ = (InstancedArgumentDescriptor<S, T>) desc;
+            return this.cached_;
+        }
     }
 }

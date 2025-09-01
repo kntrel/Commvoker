@@ -14,7 +14,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     T compose(ExecutionContext<? extends S> ctx, I object);
 
     default boolean suggests() {
-        return Utils.hasMethod(this.getClass(), "getSuggestions", CommandContext.class, SuggestionsBuilder.class);
+        return Utils.hasMethod(this.getClass(), "suggest", ExecutionContext.class, SuggestionsBuilder.class);
     }
 
     @Override

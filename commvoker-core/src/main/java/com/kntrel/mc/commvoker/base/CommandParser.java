@@ -6,20 +6,17 @@ import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
-import com.kntrel.mc.commvoker.argument.descriptor.CommandTreeGate;
 import com.kntrel.mc.commvoker.argument.descriptor.CompiledArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
 import com.kntrel.mc.commvoker.command.*;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
-import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.CommandNode;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
 
@@ -160,7 +157,7 @@ class CommandParser<S> {
         CommandNode<S> head = LiteralArgumentBuilder.<S>literal("___head___").build();
         List<CommandNode<S>> upstream = List.of(head);
         List<TypedArgumentDescriptor<?, ?>> descriptors = new ArrayList<>();
-        CommandTemplateCompiler<S> compiler = new CommandTemplateCompiler<>();
+        ArgumentDescriptorCompiler<S> compiler = new ArgumentDescriptorCompiler<>(argumentParsers);
         for (int i = 1; i < command.size(); i++) {
             CommandToken t = command.getTokenAt(i);
 

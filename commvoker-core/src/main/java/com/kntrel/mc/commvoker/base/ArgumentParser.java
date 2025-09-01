@@ -35,6 +35,8 @@ class ArgumentParser<S> {
         });
     }
 
+    //GETTERS
+    public ArgumentDescriptor<? super S, ?> argumentDescriptor() { return this.descriptor_; }
 
     //UTIL
     InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
@@ -47,5 +49,19 @@ class ArgumentParser<S> {
 
         Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, compMap, previous, bag));
         return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
+    }
+
+    boolean canParse(CommandContext<?> ctx) {
+        if (this.namesMap_.isEmpty()) return true;
+
+        for (String key : this.namesMap_.keySet()) {
+            try {
+                ctx.getArgument(key, Object.class);
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

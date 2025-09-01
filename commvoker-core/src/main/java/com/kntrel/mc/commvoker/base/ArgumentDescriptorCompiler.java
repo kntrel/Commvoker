@@ -1,6 +1,5 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.NameSupplier;
 import com.kntrel.mc.commvoker.argument.binding.Suggester;
@@ -16,7 +15,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-final class CommandTemplateCompiler<S> {
+final class ArgumentDescriptorCompiler<S> {
 
     //ASSETS
     private record CompileScope<S>(
@@ -29,12 +28,14 @@ final class CommandTemplateCompiler<S> {
 
 
     //FIELDS
+    public final ArgumentParser<S>[] argumentParsers_;
     private final IdentityHashMap<CommandNode<S>, CompiledArgumentDescriptor<S, ?>> descriptorMap_;
     private final ThreadLocal<CompileScope<S>> threadLocal_;
 
 
     //CONSTRUCTORS
-    CommandTemplateCompiler() {
+    ArgumentDescriptorCompiler(ArgumentParser<S>[] argumentParsers) {
+        this.argumentParsers_ = argumentParsers;
         this.descriptorMap_ = new IdentityHashMap<>();
         this.threadLocal_ = new ThreadLocal<>();
     }
@@ -155,7 +156,7 @@ final class CommandTemplateCompiler<S> {
 
         if (node instanceof CommandTemplate.Argument<? super S> arg) {
             Suggester<? extends S> sug = ((CommandTemplate.Argument<S>) arg).suggester();
-            if (sug != null) { ((RequiredArgumentBuilder<S, ?>) builder).suggests(new SuggesterBridge<>((Suggester<S>) sug, this.descriptorMap_)); }
+            if (sug != null) { ((RequiredArgumentBuilder<S, ?>) builder).suggests(new SuggesterBridge<>((Suggester<S>) sug, this.argumentParsers_)); }
         }
 
         if (command != null && isLeave) { builder.executes(command); }
