@@ -17,7 +17,7 @@ public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T>
     default CompletableFuture<Suggestions> firstSuggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
     }
-    default CompletableFuture<Suggestions> secondSuggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder suggestionsBuilder) {
+    default CompletableFuture<Suggestions> secondSuggest(ExecutionContext<? extends S> ctx, A first, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
     }
 
@@ -25,13 +25,19 @@ public interface BiComposedAssembler<S, A, B, T> extends ComposedAssembler<S, T>
         return Utils.hasMethod(this.getClass(), "firstSuggest", ExecutionContext.class, SuggestionsBuilder.class);
     }
     default boolean secondSuggests() {
-        return Utils.hasMethod(this.getClass(), "secondSuggest", ExecutionContext.class, SuggestionsBuilder.class);
+        return Utils.hasMethod(this.getClass(), "secondSuggest", ExecutionContext.class, Object.class, SuggestionsBuilder.class);
     }
 
     @Override
     default void composedOf(AssemblerHook<S> hook) {
         Suggester<S> firstProvider = this::firstSuggest,
-                     secondProvider = this::secondSuggest;
+                     secondProvider = (ctx, b) -> {
+                            if (ctx.hasComponent("dep1")) {
+                                A first = (A) ctx.component("dep1");
+                                return this.secondSuggest(ctx, first, b);
+                            }
+                            return b.buildFuture();
+                     };
 
         var h = hook.hook("dep1", this.firstDelegate());
         if (this.firstSuggests()) { h.suggests(firstProvider); }
