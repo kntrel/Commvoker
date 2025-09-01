@@ -4,7 +4,6 @@ import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.AssemblerHook;
 import com.kntrel.mc.commvoker.assembler.ComposedAssembler;
 import com.kntrel.mc.commvoker.provided.assemblers.StringAssembler;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import org.bukkit.World;
@@ -27,13 +26,13 @@ public class WorldAssembler implements ComposedAssembler<CommandSender, World> {
 
 
     //IMPLEMENTATION
-    public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSender> context, SuggestionsBuilder builder) {
-        context.getSource().getServer().getWorlds().forEach(w -> builder.suggest(w.getName()));
+    public CompletableFuture<Suggestions> suggest(ExecutionContext<? extends CommandSender> context, SuggestionsBuilder builder) {
+        context.source().getServer().getWorlds().forEach(w -> builder.suggest(w.getName()));
         return builder.buildFuture();
     }
     @Override
     public void composedOf(AssemblerHook<CommandSender> hooK) {
-        hooK.hook("worldArg", StringAssembler.word()).suggests(this::getSuggestions);
+        hooK.hook("worldArg", StringAssembler.word()).suggests(this::suggest);
     }
     @Override
     public World contextualize(ExecutionContext<? extends CommandSender> ctx) {
