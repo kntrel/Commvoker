@@ -2,11 +2,9 @@ package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
 
 public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescriptor<S, T>, Contextualizer<S, T> {
 
@@ -38,7 +36,7 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
 
         private final ComposedAssembler<S, T> assembler_;
         private final LinkedHashMap<String, CompiledAssembler<? super S, ?>> children_;
-        private final Map<String, SuggestionProvider<? extends S>> suggesters_;
+        private final Map<String, Suggester<? extends S>> suggesters_;
 
         Composed(ComposedAssembler<S, T> assembler) {
             this.assembler_  = assembler;
@@ -50,7 +48,7 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
             hook.nodeMap().forEach((k, v) -> {
                 CompiledAssembler<? super S, ?> child = CompiledAssembler.of(v.assembler());
                 this.children_.put(k, child);
-                SuggestionProvider<? extends S> sug = v.suggester();
+                Suggester<? extends S> sug = v.suggester();
                 if (sug != null) { this.suggesters_.put(k, sug); }
             });
         }
@@ -83,7 +81,7 @@ public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescript
                 CommandTemplate<? super S> ct = child.template(argCount);
 
                 // Apply suggester to entry roots that are arguments
-                SuggestionProvider<? extends S> sug = this.suggesters_.get(e.getKey());
+                Suggester<? extends S> sug = this.suggesters_.get(e.getKey());
                 if (sug != null) {
                     for (CommandTemplate.Node<? super S> r : ct.trees()) {
                         switch (r) {

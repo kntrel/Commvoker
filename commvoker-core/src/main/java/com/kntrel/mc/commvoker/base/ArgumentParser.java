@@ -1,7 +1,10 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,21 +20,24 @@ class ArgumentParser<S> {
 
     //FIELDS
     private final Map<String, String> namesMap_;
-    private final Contextualizer<? super S, ?> contextualizer_;
+    private final ArgumentDescriptor<? super S, ?> descriptor_;
 
 
     //CONSTRUCTORS
-    ArgumentParser(Map<String, String> namesMap, Contextualizer<? super S, ?> contextualizer) {
+    ArgumentParser(Map<String, String> namesMap, ArgumentDescriptor<? super S, ?> descriptor) {
         this.namesMap_ = namesMap;
-        this.contextualizer_ = contextualizer;
+        this.descriptor_ = descriptor;
     }
     ArgumentParser(Function<ExecutionContext<? extends S>, ?> implicitContextualizer) {
-        this(EMPTY, implicitContextualizer::apply);
+        this(EMPTY, new ArgumentDescriptor<>() {
+            @Override public CommandTemplate<S> template() { return CommandTemplate.empty(); }
+            @Override public Contextualizer<S, Object> contextualizer() { return implicitContextualizer::apply; }
+        });
     }
 
 
     //UTIL
-    Object parse(CommandContext<? extends S> ctx, List<Object> previous, Map<String, Object> bag) {
+    InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
         Map<String, Object> compMap = new HashMap<>();
 
         for (var e : this.namesMap_.entrySet()) try {
@@ -39,6 +45,7 @@ class ArgumentParser<S> {
             compMap.put(e.getValue(), o);
         } catch (IllegalArgumentException ignored) {}
 
-        return this.contextualizer_.contextualize(new ExecutionContext<>(ctx, compMap, previous, bag));
+        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, compMap, previous, bag));
+        return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
     }
 }

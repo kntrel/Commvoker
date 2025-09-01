@@ -1,8 +1,8 @@
 package com.kntrel.mc.commvoker.assembler;
 
+import com.kntrel.mc.commvoker.argument.binding.Suggester;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.concurrent.CompletableFuture;
@@ -15,13 +15,13 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
 
     T compose(ExecutionContext<? extends S> ctx, A first, B second, C third);
 
-    default CompletableFuture<Suggestions> getFirstSuggestions(CommandContext<S> ctx, SuggestionsBuilder suggestionsBuilder) {
+    default CompletableFuture<Suggestions> firstSuggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
     }
-    default CompletableFuture<Suggestions> getSecondSuggestions(CommandContext<S> ctx, SuggestionsBuilder suggestionsBuilder) {
+    default CompletableFuture<Suggestions> secondSuggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
     }
-    default CompletableFuture<Suggestions> getThirdSuggestions(CommandContext<S> ctx, SuggestionsBuilder suggestionsBuilder) {
+    default CompletableFuture<Suggestions> thirdSuggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
     }
 
@@ -37,9 +37,9 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
 
     @Override
     default void composedOf(AssemblerHook<S> hook) {
-        SuggestionProvider<S> firstProvider = this::getFirstSuggestions,
-                              secondProvider = this::getSecondSuggestions,
-                              thirdProvider = this::getThirdSuggestions;
+        Suggester<S> firstProvider = this::firstSuggest,
+                     secondProvider = this::secondSuggest,
+                     thirdProvider = this::thirdSuggest;
 
         var h = hook.hook("dep1", this.firstDelegate());
         if (this.firstSuggests()) { h.suggests(firstProvider); }

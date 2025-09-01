@@ -1,10 +1,9 @@
-package com.kntrel.mc.commvoker.base;
+package com.kntrel.mc.commvoker.argument.descriptor;
 
-import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.mojang.brigadier.tree.CommandNode;
 import java.util.*;
 
-record CommandTreeGate<S>(List<CommandNode<S>> roots, List<CommandNode<S>> leaves) {
+public record CommandTreeGate<S>(List<CommandNode<S>> roots, List<CommandNode<S>> leaves) {
 
     public static <S> CommandTreeGate<S> ofTree(CommandNode<S> root) {
         Objects.requireNonNull(root, "roots");

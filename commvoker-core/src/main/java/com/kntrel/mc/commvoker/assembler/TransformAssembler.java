@@ -1,14 +1,13 @@
 package com.kntrel.mc.commvoker.assembler;
 
+import com.kntrel.mc.commvoker.argument.binding.Suggester;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.concurrent.CompletableFuture;
 
-public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, SuggestionProvider<S> {
+public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Suggester<S> {
 
     Assembler<? super S, ? extends I> delegate();
 
@@ -25,7 +24,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     }
 
     @Override
-    default CompletableFuture<Suggestions> getSuggestions(CommandContext<S> context, SuggestionsBuilder builder) throws CommandSyntaxException {
+    default CompletableFuture<Suggestions> suggest(ExecutionContext<? extends S> context, SuggestionsBuilder builder) {
         return null;
     }
 

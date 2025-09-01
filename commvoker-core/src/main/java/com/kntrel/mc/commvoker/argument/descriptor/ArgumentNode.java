@@ -1,4 +1,4 @@
-package com.kntrel.mc.commvoker.argument.binding;
+package com.kntrel.mc.commvoker.argument.descriptor;
 
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;

@@ -1,22 +1,20 @@
 package com.kntrel.mc.commvoker.argument.context;
 
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
 import com.kntrel.mc.commvoker.command.CommandDefinition;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import com.kntrel.mc.commvoker.command.CommandToken;
-import com.kntrel.util.tuple.Pair;
 
 public class ArgumentContext extends ParameterContext {
 
     //FIELDS
     private final CommandDefinition command_;
     private final int commandTokenIndex_;
-    private final List<Pair<Type, ArgumentDescriptor<?, ?>>> previous_;
+    private final List<TypedArgumentDescriptor<?, ?>> previous_;
 
 
     //CONSTRUCTORS
@@ -27,7 +25,7 @@ public class ArgumentContext extends ParameterContext {
             int parameterIndex,
             CommandDefinition command,
             int commandTokenIndex,
-            SequencedCollection<Pair<Type, ArgumentDescriptor<?, ?>>> previous
+            SequencedCollection<TypedArgumentDescriptor<?, ?>> previous
     ) {
         super(parameter, type, method, parameterIndex);
         if (commandTokenIndex < 0) {
@@ -49,10 +47,10 @@ public class ArgumentContext extends ParameterContext {
     //GETTERS
     public CommandDefinition command() { return this.command_; }
     public int commandTokenIndex() { return this.commandTokenIndex_; }
-    public List<Pair<Type, ArgumentDescriptor<?, ?>>> previous() {
+    public List<TypedArgumentDescriptor<?, ?>> previous() {
         return this.previous_;
     }
-    public Pair<Type, ArgumentDescriptor<?, ?>> previous(int back) {
+    public TypedArgumentDescriptor<?, ?> previous(int back) {
         if (back < 0) {
             throw new IndexOutOfBoundsException("Previous item offset must be >= 0. Provided: " + back);
         }
@@ -62,14 +60,12 @@ public class ArgumentContext extends ParameterContext {
     }
     public Set<Class<?>> previousClasses() {
         return this.previous_.stream()
-                .map(Pair::first)
-                .map(t -> t instanceof Class<?> c ? c : null)
-                .filter(Objects::nonNull)
+                .map(TypedArgumentDescriptor::classType)
                 .collect(Collectors.toSet());
     }
     public Collection<Type> previousTypes() {
         return this.previous_.stream()
-                .map(Pair::first)
+                .map(TypedArgumentDescriptor::type)
                 .toList();
     }
     public boolean hasPrevious() {

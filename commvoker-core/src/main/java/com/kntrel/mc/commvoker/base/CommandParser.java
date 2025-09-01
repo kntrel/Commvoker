@@ -6,6 +6,9 @@ import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
+import com.kntrel.mc.commvoker.argument.descriptor.CommandTreeGate;
+import com.kntrel.mc.commvoker.argument.descriptor.CompiledArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
 import com.kntrel.mc.commvoker.command.*;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
@@ -13,7 +16,6 @@ import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.CommandNode;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -157,7 +159,8 @@ class CommandParser<S> {
         //Resolving explicit arguments
         CommandNode<S> head = LiteralArgumentBuilder.<S>literal("___head___").build();
         List<CommandNode<S>> upstream = List.of(head);
-        List<Pair<Type, ArgumentDescriptor<?, ?>>> descriptors = new ArrayList<>();
+        List<TypedArgumentDescriptor<?, ?>> descriptors = new ArrayList<>();
+        CommandTemplateCompiler<S> compiler = new CommandTemplateCompiler<>();
         for (int i = 1; i < command.size(); i++) {
             CommandToken t = command.getTokenAt(i);
 
@@ -180,14 +183,15 @@ class CommandParser<S> {
             ParamInfo paramInfo = paramMap.get(t.label());
             Parameter param = paramInfo.param();
             ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, descriptors));
-            descriptors.add(Pair.of(param.getParameterizedType(), descriptor));
+            TypedArgumentDescriptor<? super S, ?> typedDescriptor = TypedArgumentDescriptor.of(descriptor, param.getParameterizedType());
+            descriptors.add(typedDescriptor);
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
-            CommandTreeGate<S> gate = (execution == null)
-                    ? CommandTemplateCompiler.compile(descriptor.template(), nameSupplier)
-                    : CommandTemplateCompiler.compile(descriptor.template(), nameSupplier, execution);
-            upstream.forEach(n -> gate.roots().forEach(n::addChild));
-            upstream = gate.leaves();
-            argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor.contextualizer());
+            CompiledArgumentDescriptor<S, ?> compiled = (CompiledArgumentDescriptor<S, ?>) ((execution == null)
+                    ? compiler.compile(typedDescriptor, nameSupplier)
+                    : compiler.compile(typedDescriptor, nameSupplier, execution));
+            upstream.forEach(n -> compiled.compiled().roots().forEach(n::addChild));
+            upstream = compiled.compiled().leaves();
+            argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor);
         }
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));
