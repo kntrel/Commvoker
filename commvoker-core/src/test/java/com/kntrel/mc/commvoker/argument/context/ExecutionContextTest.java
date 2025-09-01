@@ -5,13 +5,21 @@ import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.TransformAssembler;
 import com.kntrel.mc.commvoker.command.Command;
-import com.kntrel.mc.commvoker.mock.MockCommvoker;
+import com.kntrel.mc.commvoker.mock.*;
 import com.kntrel.mc.commvoker.provided.assemblers.IntegerAssembler;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.suggestion.Suggestion;
+import com.mojang.brigadier.suggestion.Suggestions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 public class ExecutionContextTest {
 
@@ -43,6 +51,7 @@ public class ExecutionContextTest {
 
     public static final class Holder {
         ExecutionContext<?> ctx;
+        Planet planet;
 
         @Command("test")
         public void test(ExecutionContext<?> ctx) {
@@ -58,6 +67,16 @@ public class ExecutionContextTest {
         public void test(String prev, @ToBag int num, ExecutionContext<?> ctx) {
             this.ctx = ctx;
             this.ctx.bag().put("num", num);
+        }
+
+        @Command("planet tp to {planet}")
+        public void tpToPlanet(Planet planet) {
+            this.planet = planet;
+        }
+
+        @Command("planet tp {person} to {planet}")
+        public void tpToPlanet(Person person, Planet planet) {
+            this.planet = planet;
         }
     }
 
@@ -77,6 +96,14 @@ public class ExecutionContextTest {
     void setup() {
         this.commvoker = new MockCommvoker();
         this.commvoker.getArgumentRegistry().register(EXECUTION_BINDING, TO_BAG_BINDING);
+        this.commvoker.getArgumentRegistry().register(ArgumentBinder
+                .argumentAssembler(() -> new PlanetAssembler(ctx -> this.holder.ctx = ctx))
+                .toClass(Planet.class)
+                .bind());
+        this.commvoker.getArgumentRegistry().register(ArgumentBinder
+                .argumentAssembler(PersonAssembler::new)
+                .toClass(Person.class)
+                .bind());
         this.commvoker.register(this.holder);
     }
 
@@ -111,6 +138,43 @@ public class ExecutionContextTest {
         assertEquals(42, this.holder.ctx.previousArgument(0));
         assertTrue(this.holder.ctx.hasBagObject("num"));
         assertEquals(42, this.holder.ctx.bagObject("num", Integer.class));
+    }
+
+    @Test void suggestions() {
+        CommandDispatcher<Object> dispatcher = this.commvoker.getCommandDispatcher();
+        ParseResults<Object> results = assertDoesNotThrow(() -> dispatcher.parse("planet tp to ", SRC));
+        assertNotNull(results);
+        CompletableFuture<Suggestions> future = assertDoesNotThrow(() -> dispatcher.getCompletionSuggestions(results));
+        assertNotNull(future);
+        Suggestions suggestions = assertDoesNotThrow(() -> future.get());
+        assertNotNull(suggestions);
+
+        Planet[] planets = Planet.values();
+        Set<String> planetNames = suggestions.getList().stream().map(Suggestion::getText).collect(Collectors.toSet());
+        assertEquals(planets.length, suggestions.getList().size());
+        for (Planet p : planets) { assertTrue(planetNames.contains(p.getName())); }
+    }
+
+    @Test void suggestionContext() {
+        this.holder.ctx = null;
+        CommandDispatcher<Object> dispatcher = this.commvoker.getCommandDispatcher();
+        ParseResults<Object> results = assertDoesNotThrow(() -> dispatcher.parse("planet tp \"Obi Wan\" 53 to ", SRC));
+        assertNotNull(results);
+        CompletableFuture<Suggestions> future = assertDoesNotThrow(() -> dispatcher.getCompletionSuggestions(results));
+        assertNotNull(future);
+        Suggestions suggestions = assertDoesNotThrow(() -> future.get());
+        assertNotNull(suggestions);
+
+        ExecutionContext<?> executionContext = this.holder.ctx;
+        assertNotNull(executionContext);
+
+        assertSame(SRC, executionContext.source());
+        assertTrue(executionContext.hasPreviousArguments(), "should have previous arguments");
+        assertEquals("planet tp \"Obi Wan\" 53 to ", executionContext.commandContext().getInput());
+        assertEquals(1, executionContext.previousArgumentsCount());
+        Person previousPerson = assertInstanceOf(Person.class, executionContext.previousArgument());
+        assertEquals("Obi Wan", previousPerson.name());
+        assertEquals(53, previousPerson.age());
     }
 
 

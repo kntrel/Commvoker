@@ -26,13 +26,13 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     }
 
     default boolean firstSuggests() {
-        return Utils.hasMethod(this.getClass(), "getFirstSuggestions", CommandContext.class, SuggestionsBuilder.class);
+        return Utils.hasMethod(this.getClass(), "firstSuggest", ExecutionContext.class, SuggestionsBuilder.class);
     }
     default boolean secondSuggests() {
-        return Utils.hasMethod(this.getClass(), "getSecondSuggestions", CommandContext.class, SuggestionsBuilder.class);
+        return Utils.hasMethod(this.getClass(), "secondSuggest", ExecutionContext.class, SuggestionsBuilder.class);
     }
     default boolean thirdSuggests() {
-        return Utils.hasMethod(this.getClass(), "getThirdSuggestions", CommandContext.class, SuggestionsBuilder.class);
+        return Utils.hasMethod(this.getClass(), "thirdSuggest", ExecutionContext.class, SuggestionsBuilder.class);
     }
 
     @Override
