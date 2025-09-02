@@ -68,18 +68,4 @@ class ArgumentParser<S> {
 
         return compMap;
     }
-
-    boolean canParse(CommandContext<?> ctx) {
-        if (this.namesMap_.isEmpty()) return true;
-
-        for (String key : this.namesMap_.keySet()) {
-            try {
-                ctx.getArgument(key, Object.class);
-            } catch (IllegalArgumentException e) {
-                return false;
-            }
-        }
-
-        return true;
-    }
 }
