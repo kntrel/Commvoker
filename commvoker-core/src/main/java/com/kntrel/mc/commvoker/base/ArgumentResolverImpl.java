@@ -9,7 +9,6 @@ import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import com.kntrel.util.SetMap;
-import com.mojang.brigadier.context.CommandContext;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;

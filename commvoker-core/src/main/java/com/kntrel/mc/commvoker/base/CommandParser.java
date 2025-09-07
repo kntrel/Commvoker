@@ -19,8 +19,12 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 class CommandParser<S> {
+
+    //ASSETS
+    public record Result<S>(LiteralArgumentBuilder<S> builder, List<Predicate<S>> requirements) {}
 
 
     //FIElDS
@@ -92,7 +96,7 @@ class CommandParser<S> {
 
     @SuppressWarnings("unchecked")
     public LiteralArgumentBuilder<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
-        // Guard assertions
+         // Guard assertions
          if (patternTokens.length == 0) {
             throw new IllegalArgumentException("empty CommandToken array");
         }
@@ -103,6 +107,7 @@ class CommandParser<S> {
         CommandPattern pattern = new CommandPattern(patternTokens);
 
         // Extracting explicit parameters
+        List<Predicate<S>> requirements = new ArrayList<>();
         Parameter[] params = method.getParameters();
         ArgumentParser<S>[] argumentParsers = new ArgumentParser[params.length];
         Queue<ParamInfo> explicitParams = new LinkedList<>();
@@ -113,7 +118,6 @@ class CommandParser<S> {
                 argumentParsers[i] = new ArgumentParser<>(arg);
                 continue;
             } catch (NoSuchArgumentBindingException ignores) {}
-
             explicitParams.add(new ParamInfo(param, i));
         }
 

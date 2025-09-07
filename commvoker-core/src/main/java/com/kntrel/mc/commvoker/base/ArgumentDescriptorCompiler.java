@@ -151,8 +151,10 @@ final class ArgumentDescriptorCompiler<S> {
             builtChildren.add(buildNode(target, command));
         }
 
+        RequirementNode<S> reqNode = new RequirementNode<>();
+        builder.requires(reqNode);
         Predicate<? super S> req = node.requirement();
-        if (req != null) { builder.requires((Predicate<S>) req); }
+        if (req != null) { reqNode.and(req); }
 
         if (node instanceof CommandTemplate.Argument<? super S> arg) {
             Suggester<? extends S> sug = ((CommandTemplate.Argument<S>) arg).suggester();
