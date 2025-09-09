@@ -4,10 +4,15 @@ import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
 import com.kntrel.mc.commvoker.requirement.Requirement;
 import com.kntrel.mc.commvoker.requirement.Requires;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.tree.CommandNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -90,6 +95,18 @@ public class RequiresTest {
 
         assertDoesNotRequire(root);
         assertRequires(sub);
+
+        CommandDispatcher<Object> dispatcher = this.commvoker.getCommandDispatcher();
+        ParseResults<Object> parseRes = dispatcher.parse("test1 ", SRC);
+        CompletableFuture<Suggestions> suggestionsTask = dispatcher.getCompletionSuggestions(parseRes);
+        Suggestions suggestions = suggestionsTask.join();
+        assertEquals(1, suggestions.getList().size());
+
+        assertDoesNotThrow(() -> dispatcher.execute("test1", SRC));
+        assertThrows(CommandSyntaxException.class, () -> dispatcher.execute("test1 test2", SRC));
+
+        String[] usage = dispatcher.getAllUsage(dispatcher.getRoot(), SRC, true);
+        assertArrayEquals(new String[] { "test1" }, usage);
     }
 
     @Test void requirementConflict2() {
