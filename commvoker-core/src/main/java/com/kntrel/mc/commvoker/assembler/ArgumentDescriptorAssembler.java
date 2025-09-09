@@ -2,12 +2,17 @@ package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 
 public class ArgumentDescriptorAssembler<S, T> implements EndAssembler<S, T> {
 
     //FACTORY
     public static <S, T> ArgumentDescriptorAssembler<S, T> argumentDescriptor(ArgumentDescriptor<S, T> descriptor) {
-        return new ArgumentDescriptorAssembler<>(descriptor.template(), descriptor.contextualizer());
+        if (descriptor instanceof TemplatedArgumentDescriptor<S,T> templated) {
+            return new ArgumentDescriptorAssembler<>(templated.template(), templated.contextualizer());
+        }
+        throw new IllegalArgumentException("Provided descriptor is not templated.");
     }
 
 

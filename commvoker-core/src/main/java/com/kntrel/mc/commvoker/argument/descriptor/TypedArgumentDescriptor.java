@@ -1,21 +1,23 @@
 package com.kntrel.mc.commvoker.argument.descriptor;
 
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.function.Predicate;
 
-public interface TypedArgumentDescriptor<S, T> extends ArgumentDescriptor<S, T> {
+public interface TypedArgumentDescriptor<S, T> extends TemplatedArgumentDescriptor<S, T> {
 
-    static <S, T> TypedArgumentDescriptor<S, T> of(ArgumentDescriptor<S, T> delegate, Type type) {
+    static <S, T> TypedArgumentDescriptor<S, T> of(TemplatedArgumentDescriptor<S, T> delegate, Type type) {
         return new TypedArgumentDescriptor<>() {
             @Override public CommandTemplate<S> template() { return delegate.template(); }
             @Override public Contextualizer<S, T> contextualizer() { return delegate.contextualizer(); }
+            @Override
+            public Predicate<S> requirement() { return delegate.requirement(); }
             @Override public Type type() { return type; }
         };
     }
-    static <S, T> TypedArgumentDescriptor<S, T> of(ArgumentDescriptor<S, T> delegate, Class<T> cls) {
+    static <S, T> TypedArgumentDescriptor<S, T> of(TemplatedArgumentDescriptor<S, T> delegate, Class<T> cls) {
         return of(delegate, (Type) cls);
     }
 

@@ -8,6 +8,11 @@ public class RequirementNode<S> implements Predicate<S> {
 
     //FACTORY
     private static final RequirementNode<?> ALWAYS = new RequirementNode<>().always();
+    public static <S> RequirementNode<S> always() {
+        @SuppressWarnings("unchecked")
+        RequirementNode<S> node = (RequirementNode<S>) ALWAYS;
+        return node;
+    }
 
 
     //FIELDS
@@ -27,6 +32,7 @@ public class RequirementNode<S> implements Predicate<S> {
     public boolean test(S s) {
         if (this.passThrough_) { return true; }
         for (Predicate<S> test : this.tests_) {
+            if (test == null) { continue; }
             if (!test.test(s)) { return false; }
         }
         return true;
@@ -38,8 +44,7 @@ public class RequirementNode<S> implements Predicate<S> {
 
         if (other instanceof RequirementNode<?> node) {
             if (node.passThrough_) {
-                this.passThrough_ = true;
-                this.tests_.clear();
+                return this.orAlways();
             } else {
                 node.tests_.forEach(t -> this.tests_.add((Predicate<S>) t));
             }
@@ -49,7 +54,7 @@ public class RequirementNode<S> implements Predicate<S> {
         return this;
     }
 
-    public RequirementNode<S> always() {
+    public RequirementNode<S> orAlways() {
         this.passThrough_ = true;
         this.tests_.clear();
         return this;

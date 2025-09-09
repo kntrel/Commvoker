@@ -7,21 +7,33 @@ import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
+import com.kntrel.mc.commvoker.requirement.AnnotatedRequirement;
+import com.kntrel.mc.commvoker.requirement.Requires;
+import com.kntrel.util.Multipredicate;
+import com.kntrel.util.tuple.Pair;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.tree.CommandNode;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public abstract class BaseCommvoker<S> {
 
+    //FIELDS
     private final ArgumentResolverImpl<S> argumentResolver_;
     private final CommandParser<S> commandParser_;
     private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
+    private final Class<S> sourceClass_;
 
 
-    public BaseCommvoker(CommandDispatcher<S> commandDispatcher) {
+    //CONSTRUCTORS
+    public BaseCommvoker(Class<S> sourceClass, CommandDispatcher<S> commandDispatcher) {
+        this.sourceClass_ = sourceClass;
         this.dispatcher_ = commandDispatcher;
         this.argumentResolver_ = new ArgumentResolverImpl<>();
         this.commandParser_ = new CommandParser<>(this.argumentResolver_);
@@ -31,6 +43,7 @@ public abstract class BaseCommvoker<S> {
     }
 
 
+    //UTILITY
     public void register(Object src) {
         if (this.instanceClasses_.contains(src.getClass())) {
             throw new IllegalStateException("An instance of '" + src.getClass().getName() + "' has already been registered into this Commvoker");
@@ -82,14 +95,20 @@ public abstract class BaseCommvoker<S> {
                 tokens = Utils.arrayJoin(outerTokens, tokens);
             }
 
-            LiteralArgumentBuilder<S> commandTree;
+            CommandParser.Result<S> parsed;
             try {
-                commandTree = this.commandParser_.brigadierCommand(tokens, m, src);
+                parsed = this.commandParser_.brigadierCommand(tokens, m, src);
             } catch (BadCommandMethodException e) {
                 throw new BadCommandClassException(src, e);
             }
 
+            LiteralArgumentBuilder<S> commandTree = parsed.tree();
             this.register(commandTree);
+            List<Predicate<S>> reqs = Stream.concat(
+                    parsed.requirements().stream(),
+                    this.extractRequirements(m).stream()
+            ).toList();
+            this.applyRequirement(commandTree, reqs.isEmpty() ? RequirementNode.always() : Multipredicate.and(reqs));
         }
 
         this.instanceClasses_.add(src.getClass());
@@ -103,11 +122,62 @@ public abstract class BaseCommvoker<S> {
         return this.dispatcher_.execute(command, src);
     }
 
+
+    //GETTERS
     public ArgumentRegistry<S> getArgumentRegistry() {
         return this.argumentResolver_;
     }
 
     protected CommandDispatcher<S> getCommandDispatcher() {
         return this.dispatcher_;
+    }
+
+
+    //HELPERS
+    private List<RequirementBridge<S>> extractRequirements(Method method) {
+        List<RequirementBridge<S>> out = new ArrayList<>();
+        for (var a : method.getAnnotations()) {
+            Requires requires = (a instanceof Requires r) ? r : a.annotationType().getAnnotation(Requires.class);
+            if (requires == null) { continue; }
+
+            for (Class<? extends AnnotatedRequirement<?, ?>> reqClass : requires.value()) {
+                AnnotatedRequirement<?, ?> reqInstance = annotatedRequirementInstance(reqClass);
+                out.add(new RequirementBridge<>(this.sourceClass_, reqInstance, requires));
+            }
+        }
+        return out;
+    }
+    private static AnnotatedRequirement<?, ?> annotatedRequirementInstance(Class<? extends AnnotatedRequirement<?, ?>> requirementClass) {
+        try {
+            return requirementClass.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not instantiate requirement class '" + requirementClass.getName() + "'", e);
+        }
+    }
+    private void applyRequirement(LiteralArgumentBuilder<S> tree, Predicate<S> requirement) {
+        CommandNode<S> root = this.dispatcher_.getRoot().getChild(tree.getLiteral());
+        if (root == null) { return; }
+
+        Deque<Pair<CommandNode<S>, CommandNode<S>>> stack = new ArrayDeque<>();
+        tree.getArguments().forEach(c -> {
+            CommandNode<S> child = root.getChild(c.getName());
+            if (child != null) { stack.push(Pair.of(c, child)); }
+        });
+
+        while (!stack.isEmpty()) {
+            Pair<CommandNode<S>, CommandNode<S>> p = stack.pop();
+            CommandNode<S> from = p.first();
+            CommandNode<S> to = p.second();
+
+            Predicate<S> req = to.getRequirement();
+            if (req instanceof RequirementNode<S> rn) {
+                rn.or(requirement);
+            }
+
+            from.getChildren().forEach(c -> {
+                CommandNode<S> child = to.getChild(c.getName());
+                if (child != null) { stack.push(Pair.of(c, child)); }
+            });
+        }
     }
 }

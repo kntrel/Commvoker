@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.argument.binding.Suggester;
@@ -13,6 +13,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 class SuggesterBridge<S> implements SuggestionProvider<S> {
 
@@ -75,9 +76,8 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
         }
 
         //IMPLEMENTATION
-        @Override public CommandTemplate<S> template() { return this.delegate_.template(); }
         @Override public Contextualizer<S, T> contextualizer() { return this.delegate_.contextualizer(); }
-        @Override public Type type() { return this.resolve().type(); }
+        @Override public Predicate<S> requirement() { return this.delegate_.requirement(); }
         @Override public T value() { return this.resolve().value(); }
 
         //PRIVATE

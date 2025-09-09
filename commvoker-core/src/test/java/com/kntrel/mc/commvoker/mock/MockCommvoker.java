@@ -6,7 +6,7 @@ import com.mojang.brigadier.CommandDispatcher;
 public class MockCommvoker extends BaseCommvoker<Object> {
 
     public MockCommvoker() {
-        super(new CommandDispatcher<>());
+        super(Object.class, new CommandDispatcher<>());
     }
 
 

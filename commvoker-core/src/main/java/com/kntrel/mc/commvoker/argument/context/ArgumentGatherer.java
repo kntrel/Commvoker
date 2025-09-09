@@ -2,7 +2,7 @@ package com.kntrel.mc.commvoker.argument.context;
 
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
 import java.lang.reflect.Type;
 import java.util.*;
