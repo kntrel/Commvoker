@@ -4,14 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class RequirementNode<S> implements Predicate<S> {
+class RequirementNode<S> implements Predicate<S> {
 
     //FACTORY
-    private static final RequirementNode<?> ALWAYS = new RequirementNode<>().always();
+    private static final RequirementNode<?> ALWAYS = new RequirementNode<>().orAlways();
     public static <S> RequirementNode<S> always() {
-        @SuppressWarnings("unchecked")
-        RequirementNode<S> node = (RequirementNode<S>) ALWAYS;
-        return node;
+        return (RequirementNode<S>) ALWAYS;
     }
 
 

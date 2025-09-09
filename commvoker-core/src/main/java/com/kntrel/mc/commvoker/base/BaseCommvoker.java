@@ -15,7 +15,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Predicate;
@@ -108,7 +107,15 @@ public abstract class BaseCommvoker<S> {
                     parsed.requirements().stream(),
                     this.extractRequirements(m).stream()
             ).toList();
-            this.applyRequirement(commandTree, reqs.isEmpty() ? RequirementNode.always() : Multipredicate.and(reqs));
+            Predicate<S> req;
+            if (reqs.isEmpty()) {
+                req = RequirementNode.always();
+            } else if (reqs.size() < 2) {
+                req = reqs.getFirst();
+            } else {
+                req = Multipredicate.and(reqs);
+            }
+            this.applyRequirement(commandTree, req);
         }
 
         this.instanceClasses_.add(src.getClass());
@@ -149,7 +156,9 @@ public abstract class BaseCommvoker<S> {
     }
     private static AnnotatedRequirement<?, ?> annotatedRequirementInstance(Class<? extends AnnotatedRequirement<?, ?>> requirementClass) {
         try {
-            return requirementClass.getDeclaredConstructor().newInstance();
+            var constructor = requirementClass.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
         } catch (Exception e) {
             throw new IllegalStateException("Could not instantiate requirement class '" + requirementClass.getName() + "'", e);
         }
@@ -159,10 +168,7 @@ public abstract class BaseCommvoker<S> {
         if (root == null) { return; }
 
         Deque<Pair<CommandNode<S>, CommandNode<S>>> stack = new ArrayDeque<>();
-        tree.getArguments().forEach(c -> {
-            CommandNode<S> child = root.getChild(c.getName());
-            if (child != null) { stack.push(Pair.of(c, child)); }
-        });
+        stack.push(Pair.of(tree.build(), root));
 
         while (!stack.isEmpty()) {
             Pair<CommandNode<S>, CommandNode<S>> p = stack.pop();

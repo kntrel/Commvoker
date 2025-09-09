@@ -176,6 +176,7 @@ class CommandParser<S> {
 
             if (t.isLiteral()) {
                 LiteralArgumentBuilder<S> lit = LiteralArgumentBuilder.literal(t.label());
+                lit.requires(new RequirementNode<>());
                 if (execution != null) {
                     lit.executes(execution);
                 }
@@ -203,6 +204,7 @@ class CommandParser<S> {
         }
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));
+        root.requires(new RequirementNode<>());
         Collection<CommandNode<S>> tail = head.getChildren();
         if (!tail.isEmpty()) {
             tail.forEach(root::then);

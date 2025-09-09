@@ -16,9 +16,10 @@ public class RequirementBridge<S> implements Predicate<S> {
     //CONSTRUCTOR
     public RequirementBridge(Class<S> sourceClass, AnnotatedRequirement<?, ?> requirement, Annotation annotation) {
         try {
-            requirement.getClass().getDeclaredMethod("test", sourceClass, annotation.getClass());
+
+            requirement.getClass().getMethod("test", sourceClass, annotation.annotationType());
         } catch (NoSuchMethodException e) {
-            Method method = Arrays.stream(requirement.getClass().getDeclaredMethods())
+            Method method = Arrays.stream(requirement.getClass().getMethods())
                     .filter(m -> m.getName().equals("test"))
                     .filter(m -> {
                         Class<?>[] params = m.getParameterTypes();
