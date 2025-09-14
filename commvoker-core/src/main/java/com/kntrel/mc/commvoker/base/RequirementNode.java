@@ -25,6 +25,11 @@ class RequirementNode<S> implements Predicate<S> {
         this.andTests_ = new ArrayList<>();
         this.orAlways_ = false;
     }
+    public RequirementNode(RequirementNode<S> other) {
+        this.orTests_ = new ArrayList<>(other.orTests_);
+        this.andTests_ = new ArrayList<>(other.andTests_);
+        this.orAlways_ = other.orAlways_;
+    }
 
 
     //IMPLEMENTATION
@@ -58,7 +63,13 @@ class RequirementNode<S> implements Predicate<S> {
         }
         return this;
     }
+    @Override
+    public RequirementNode<S> clone() {
+        return new RequirementNode<>(this);
+    }
 
+
+    //UTILITY
     public RequirementNode<S> orAlways() {
         this.orAlways_ = true;
         this.orTests_.clear();

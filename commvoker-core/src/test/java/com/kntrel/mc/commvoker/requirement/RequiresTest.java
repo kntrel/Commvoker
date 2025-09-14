@@ -130,7 +130,8 @@ public class RequiresTest {
     @Test void requirementConflict2() {
         this.commvoker.register(new Holder3());
 
-        CommandNode<Object> root = this.commvoker.getCommandDispatcher().getRoot().getChild("test1");
+        CommandDispatcher<Object> dispatcher = this.commvoker.getCommandDispatcher();
+        CommandNode<Object> root = dispatcher.getRoot().getChild("test1");
         assertNotNull(root);
 
         CommandNode<Object> sub1 = root.getChild("test2");
@@ -147,6 +148,10 @@ public class RequiresTest {
         assertDoesNotRequire(root);
         assertDoesNotRequire(sub1);
         assertDoesNotRequire(sub2);
+
+        assertDoesNotThrow(() -> dispatcher.execute("test1", SRC));
+        assertThrows(CommandSyntaxException.class, () -> dispatcher.execute("test1 test2", SRC));
+        assertDoesNotThrow(() -> dispatcher.execute("test1 test2 test3", SRC));
     }
 
     @Test void metaRequirement() {

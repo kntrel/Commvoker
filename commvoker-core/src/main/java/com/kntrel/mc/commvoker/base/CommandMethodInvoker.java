@@ -3,18 +3,21 @@ package com.kntrel.mc.commvoker.base;
 import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 class CommandMethodInvoker<S> implements Command<S> {
 
     private final Method method_;
     private final ArgumentParser<S>[] argumentParsers_;
     private final Object instance_;
+    private Predicate<S> requirement_;
 
 
     CommandMethodInvoker(Object instance, Method method, ArgumentParser<S>[] arguments) {
@@ -25,10 +28,15 @@ class CommandMethodInvoker<S> implements Command<S> {
         this.instance_ = instance;
         this.method_ = method;
         this.argumentParsers_ = arguments;
+        this.requirement_ = null;
     }
 
 
-    @Override public int run(CommandContext<S> ctx) {
+    @Override public int run(CommandContext<S> ctx) throws CommandSyntaxException {
+        if (this.requirement_ != null && !this.requirement_.test(ctx.getSource())) {
+            throw new CommandSyntaxException(null, () -> "Command requirements not met");
+        }
+
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>(this.argumentParsers_.length);
         Map<String, Object> bag = new HashMap<>();
         for (ArgumentParser<S> parser : this.argumentParsers_) {
@@ -49,5 +57,12 @@ class CommandMethodInvoker<S> implements Command<S> {
         }
 
         return 0;
+    }
+
+    public CommandMethodInvoker<S> requires(Predicate<S> requirement) {
+        this.requirement_ = (this.requirement_ == null)
+                ? requirement
+                : this.requirement_.and(requirement);
+        return this;
     }
 }
