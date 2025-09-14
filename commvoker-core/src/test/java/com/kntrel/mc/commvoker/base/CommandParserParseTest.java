@@ -288,7 +288,7 @@ public class CommandParserParseTest {
         Method m = getMethod(name, args);
         Command annotation = getAnnotation(m);
         var tokens = assertValidTokens(annotation.value());
-        LiteralArgumentBuilder<?> tree = assertDoesNotThrow(() -> parser.brigadierCommand(tokens, m, this));
+        LiteralArgumentBuilder<?> tree = assertDoesNotThrow(() -> parser.brigadierCommand(tokens, m, this).tree());
         return tree.build();
     }
 }

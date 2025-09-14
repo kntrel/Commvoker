@@ -3,10 +3,11 @@ package com.kntrel.mc.commvoker.base;
 import com.kntrel.mc.commvoker.argument.binding.NameSupplier;
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.CompiledArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
 import com.kntrel.mc.commvoker.command.*;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
@@ -19,8 +20,12 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 class CommandParser<S> {
+
+    //ASSETS
+    public record Result<S>(LiteralArgumentBuilder<S> tree, List<Predicate<S>> requirements) {}
 
 
     //FIElDS
@@ -82,7 +87,7 @@ class CommandParser<S> {
     }
 
     @SuppressWarnings("unused")
-    public LiteralArgumentBuilder<S> brigadierCommand(String command, Method method, Object instance) throws BadCommandMethodException {
+    public Result<S> brigadierCommand(String command, Method method, Object instance) throws BadCommandMethodException {
         try {
             return this.brigadierCommand(this.tokenize(command), method, instance);
         } catch (BadCommandTokenException e) {
@@ -91,8 +96,8 @@ class CommandParser<S> {
     }
 
     @SuppressWarnings("unchecked")
-    public LiteralArgumentBuilder<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
-        // Guard assertions
+    public Result<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
+         // Guard assertions
          if (patternTokens.length == 0) {
             throw new IllegalArgumentException("empty CommandToken array");
         }
@@ -103,17 +108,20 @@ class CommandParser<S> {
         CommandPattern pattern = new CommandPattern(patternTokens);
 
         // Extracting explicit parameters
+        List<Predicate<S>> requirements = new ArrayList<>();
         Parameter[] params = method.getParameters();
         ArgumentParser<S>[] argumentParsers = new ArgumentParser[params.length];
         Queue<ParamInfo> explicitParams = new LinkedList<>();
         for (int i = 0; i < params.length; i++) {
             Parameter param = params[i];
             try {
-                Function<ExecutionContext<? extends S>, ?> arg = this.argumentResolver_.resolve(new ParameterContext(param, param.getParameterizedType(), method, i));
-                argumentParsers[i] = new ArgumentParser<>(arg);
+                ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ParameterContext(param, param.getParameterizedType(), method, i));
+                if (descriptor.requirement() != null) {
+                    requirements.add((Predicate<S>) descriptor.requirement());
+                }
+                argumentParsers[i] = new ArgumentParser<>(descriptor);
                 continue;
             } catch (NoSuchArgumentBindingException ignores) {}
-
             explicitParams.add(new ParamInfo(param, i));
         }
 
@@ -168,6 +176,7 @@ class CommandParser<S> {
 
             if (t.isLiteral()) {
                 LiteralArgumentBuilder<S> lit = LiteralArgumentBuilder.literal(t.label());
+                lit.requires(new RequirementNode<>());
                 if (execution != null) {
                     lit.executes(execution);
                 }
@@ -179,7 +188,10 @@ class CommandParser<S> {
 
             ParamInfo paramInfo = paramMap.get(t.label());
             Parameter param = paramInfo.param();
-            ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, descriptors));
+            TemplatedArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, descriptors));
+            if (descriptor.requirement() != null) {
+                requirements.add((Predicate<S>) descriptor.requirement());
+            }
             TypedArgumentDescriptor<? super S, ?> typedDescriptor = TypedArgumentDescriptor.of(descriptor, param.getParameterizedType());
             descriptors.add(typedDescriptor);
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
@@ -192,13 +204,14 @@ class CommandParser<S> {
         }
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));
+        root.requires(new RequirementNode<>());
         Collection<CommandNode<S>> tail = head.getChildren();
         if (!tail.isEmpty()) {
             tail.forEach(root::then);
         } else {
             root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
         }
-        return root;
+        return new Result<>(root, requirements);
     }
 
     private static CommandPatternToken.Type categorize(String word) {

@@ -4,22 +4,23 @@ import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.context.CommandContext;
+
 import java.lang.annotation.Annotation;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public sealed interface ArgumentBinding<S, C extends ParameterContext, T> extends Predicate<C>, Comparable<ArgumentBinding<S, C, T>> {
 
     non-sealed interface Implicit<S, T> extends ArgumentBinding<S, ParameterContext, T> {
 
-        Function<ExecutionContext<? extends S>, T> implyer();
+        ArgumentDescriptor<S, T> descriptor();
     }
 
     non-sealed interface Descriptive<S, T> extends ArgumentBinding<S, ArgumentContext, T> {
 
-        ArgumentDescriptor<S, T> descriptor(ArgumentGatherer<? extends S> ctx);
+        TemplatedArgumentDescriptor<S, T> descriptor(ArgumentGatherer<? extends S> ctx);
     }
 
     Class<T> toClass();

@@ -3,9 +3,7 @@ package com.kntrel.mc.commvoker.base;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.NameSupplier;
 import com.kntrel.mc.commvoker.argument.binding.Suggester;
-import com.kntrel.mc.commvoker.argument.descriptor.CommandTreeGate;
-import com.kntrel.mc.commvoker.argument.descriptor.CompiledArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.*;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -151,8 +149,10 @@ final class ArgumentDescriptorCompiler<S> {
             builtChildren.add(buildNode(target, command));
         }
 
+        RequirementNode<S> reqNode = new RequirementNode<>();
+        builder.requires(reqNode);
         Predicate<? super S> req = node.requirement();
-        if (req != null) { builder.requires((Predicate<S>) req); }
+        if (req != null) { reqNode.and(req); }
 
         if (node instanceof CommandTemplate.Argument<? super S> arg) {
             Suggester<? extends S> sug = ((CommandTemplate.Argument<S>) arg).suggester();

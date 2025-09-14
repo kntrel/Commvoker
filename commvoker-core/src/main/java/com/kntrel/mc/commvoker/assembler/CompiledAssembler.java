@@ -2,39 +2,63 @@ package com.kntrel.mc.commvoker.assembler;
 
 import com.kntrel.mc.commvoker.argument.binding.*;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public sealed abstract class CompiledAssembler<S, T> implements ArgumentDescriptor<S, T>, Contextualizer<S, T> {
+public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumentDescriptor<S, T>, Contextualizer<S, T> {
 
-    public static <S, T> CompiledAssembler<S, T> of(Assembler<S, T> assembler) {
-        return switch (assembler) {
+    //FACTORY
+    public static <S, T> CompiledAssembler<S, T> of(Assembler<S, T> assembler, Predicate<S> requirement) {
+        CompiledAssembler<S, T> out = switch (assembler) {
             case EndAssembler<S, T> end    -> new Leave<>(end);
             case ComposedAssembler<S, T> c -> new Composed<>(c);
         };
+        out.setRequirement(requirement);
+        return out;
+    }
+    public static <S, T> CompiledAssembler<S, T> of(Assembler<S, T> assembler) {
+        return of(assembler, null);
     }
 
-    @Override
-    public CommandTemplate<S> template() {
-        return this.template(new HashMap<>());
+
+    //FIELDS
+    protected Predicate<S> requirement_ = null;
+
+
+    //SETTERS
+    protected void setRequirement(Predicate<S> req) {
+        this.requirement_ = req;
     }
 
-    @Override
-    public Contextualizer<S, T> contextualizer() {
-        return this;
-    }
 
+    //CONTRACT
     protected abstract CommandTemplate<S> template(Map<String, AtomicInteger> argCount);
 
     protected abstract Assembler<S, T> assembler();
 
 
-    /* ---------------------------------------------------- COMPOSED ---------------------------------------------------- */
+    //IMPLEMENTATION
+    @Override
+    public CommandTemplate<S> template() {
+        return this.template(new HashMap<>());
+    }
+    @Override
+    public Contextualizer<S, T> contextualizer() {
+        return this;
+    }
+    @Override
+    public Predicate<S> requirement() {
+        return this.requirement_;
+    }
 
+    /* ---------------------------------------------------- COMPOSED ---------------------------------------------------- */
     private static final class Composed<S, T> extends CompiledAssembler<S, T> {
 
         private final ComposedAssembler<S, T> assembler_;

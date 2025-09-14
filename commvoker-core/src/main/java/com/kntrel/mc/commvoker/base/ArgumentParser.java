@@ -1,16 +1,13 @@
 package com.kntrel.mc.commvoker.base;
 
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
-import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 class ArgumentParser<S> {
 
@@ -28,11 +25,8 @@ class ArgumentParser<S> {
         this.namesMap_ = namesMap;
         this.descriptor_ = descriptor;
     }
-    ArgumentParser(Function<ExecutionContext<? extends S>, ?> implicitContextualizer) {
-        this(EMPTY, new ArgumentDescriptor<>() {
-            @Override public CommandTemplate<S> template() { return CommandTemplate.empty(); }
-            @Override public Contextualizer<S, Object> contextualizer() { return implicitContextualizer::apply; }
-        });
+    ArgumentParser(ArgumentDescriptor<? super S, ?> descriptor) {
+        this(EMPTY, descriptor);
     }
 
     //GETTERS

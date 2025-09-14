@@ -1,6 +1,6 @@
 package com.kntrel.mc.commvoker.assembler;
 
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.mojang.brigadier.arguments.ArgumentType;
 

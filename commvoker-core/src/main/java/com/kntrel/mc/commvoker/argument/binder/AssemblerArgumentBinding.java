@@ -2,10 +2,11 @@ package com.kntrel.mc.commvoker.argument.binder;
 
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
+import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
-import com.kntrel.mc.commvoker.argument.binding.ArgumentDescriptor;
+import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.util.Priority;
 import java.lang.annotation.Annotation;
 import java.util.function.Function;
@@ -21,7 +22,7 @@ record AssemblerArgumentBinding<S, T>(
 ) implements ArgumentBinding.Descriptive<S, T> {
 
     @Override
-    public ArgumentDescriptor<S, T> descriptor(ArgumentGatherer<? extends S> ctx) {
+    public TemplatedArgumentDescriptor<S, T> descriptor(ArgumentGatherer<? extends S> ctx) {
         return CompiledAssembler.of(supplier().apply(ctx));
     }
 }
