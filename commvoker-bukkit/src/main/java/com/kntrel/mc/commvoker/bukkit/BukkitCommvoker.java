@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 
 public class BukkitCommvoker extends BaseCommvoker<CommandSender> {
     public BukkitCommvoker(CommandDispatcher<CommandSender> commandDispatcher) {
-        super(commandDispatcher);
+        super(CommandSender.class, commandDispatcher);
 
         ArgumentRegistry<CommandSender> registry = this.getArgumentRegistry();
         registry.register(BukkitArgumentBindings.all());
