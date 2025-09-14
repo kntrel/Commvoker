@@ -29,11 +29,12 @@ class RequirementNode<S> implements Predicate<S> {
     @Override
     public boolean test(S s) {
         if (this.passThrough_) { return true; }
+        if (this.tests_.isEmpty()) { return true; }
         for (Predicate<S> test : this.tests_) {
             if (test == null) { continue; }
-            if (!test.test(s)) { return false; }
+            if (test.test(s)) { return true; }
         }
-        return true;
+        return false;
     }
 
     @Override @SuppressWarnings("unchecked")
