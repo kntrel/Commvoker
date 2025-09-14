@@ -8,6 +8,7 @@ import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.kntrel.mc.commvoker.requirement.AnnotatedRequirement;
+import com.kntrel.mc.commvoker.requirement.Requirement;
 import com.kntrel.mc.commvoker.requirement.Requires;
 import com.kntrel.util.Multipredicate;
 import com.kntrel.util.tuple.Pair;
@@ -15,6 +16,8 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
+
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Predicate;
@@ -149,7 +152,8 @@ public abstract class BaseCommvoker<S> {
 
             for (Class<? extends AnnotatedRequirement<?, ?>> reqClass : requires.value()) {
                 AnnotatedRequirement<?, ?> reqInstance = annotatedRequirementInstance(reqClass);
-                out.add(new RequirementBridge<>(this.sourceClass_, reqInstance, requires));
+                Annotation annotation = (reqInstance instanceof Requirement<?>) ? requires : a;
+                out.add(new RequirementBridge<>(this.sourceClass_, reqInstance, annotation));
             }
         }
         return out;

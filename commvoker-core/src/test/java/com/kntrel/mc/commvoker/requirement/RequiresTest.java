@@ -2,6 +2,8 @@ package com.kntrel.mc.commvoker.requirement;
 
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
+import com.kntrel.mc.commvoker.mock.MockRequires;
+import com.kntrel.mc.commvoker.mock.Person;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -67,7 +69,11 @@ public class RequiresTest {
     public static class Holder4 {
         @Command("test1")
         @MetaRequirement
-        public void test() {}
+        public void test1() {}
+
+        @Command("test2")
+        @MockRequires("example")
+        public void test2() {}
     }
 
 
@@ -146,11 +152,21 @@ public class RequiresTest {
     @Test void metaRequirement() {
         this.commvoker.register(new Holder4());
 
-        CommandNode<Object> root = this.commvoker.getCommandDispatcher().getRoot().getChild("test1");
+        CommandDispatcher<Object> dispatcher = this.commvoker.getCommandDispatcher();
+        CommandNode<Object> root = dispatcher.getRoot().getChild("test1");
         assertNotNull(root);
 
         assertEqualTrees(root, LiteralArgumentBuilder.literal("test1").build());
         assertRequires(root);
+
+        root = dispatcher.getRoot().getChild("test2");
+        assertNotNull(root);
+        assertEqualTrees(root, LiteralArgumentBuilder.literal("test2").build());
+        assertDoesNotRequire(root);
+
+        Person p = new Person("Jane", 35);
+        assertDoesNotThrow(() -> dispatcher.execute("test2", p));
+        assertEquals("example", p.name());
     }
 
 

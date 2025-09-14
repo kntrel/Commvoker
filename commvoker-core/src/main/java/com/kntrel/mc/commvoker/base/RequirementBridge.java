@@ -39,7 +39,7 @@ public class RequirementBridge<S> implements Predicate<S> {
                 Class<?> methodAnnotationClass = method.getParameterTypes()[1];
                 if (!methodAnnotationClass.isAssignableFrom(annotation.getClass())) {
                     msg .append(" Must be used in @").append(methodAnnotationClass.getName()).append(".")
-                        .append(" Used in @").append(annotation.getClass().getName()).append(".");
+                        .append(" Used in @").append(annotation.annotationType().getName()).append(".");
                 }
             }
 
