@@ -16,7 +16,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.CommandNode;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -31,6 +30,7 @@ public abstract class BaseCommvoker<S> {
     private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
     private final Class<S> sourceClass_;
+    private final Map<CommandNode<S>, Predicate<S>> requirements_;
 
 
     //CONSTRUCTORS
@@ -40,6 +40,7 @@ public abstract class BaseCommvoker<S> {
         this.argumentResolver_ = new ArgumentResolverImpl<>();
         this.commandParser_ = new CommandParser<>(this.argumentResolver_);
         this.instanceClasses_ = new HashSet<>();
+        this.requirements_ = new IdentityHashMap<>();
 
         ArgumentBindings.all().forEach(this.argumentResolver_::register);
     }
@@ -179,12 +180,23 @@ public abstract class BaseCommvoker<S> {
             CommandNode<S> from = p.first();
             CommandNode<S> to = p.second();
 
-            Predicate<S> req = to.getRequirement();
-            if (req instanceof RequirementNode<S> rn) {
+            if (to.getRequirement() instanceof RequirementNode<S> rn) {
                 rn.or(requirement);
             }
 
-            from.getChildren().forEach(c -> {
+            Collection<CommandNode<S>> next = from.getChildren();
+            if (next.isEmpty()) {
+                this.requirements_.put(to, requirement);
+            }
+            if (!to.getChildren().isEmpty() && to.getCommand() instanceof CommandMethodInvoker<S> cmi) {
+                Predicate<S> hardReq = this.requirements_.remove(to);
+                if (hardReq != null) {
+                    cmi.requires(hardReq);
+                }
+            }
+
+
+            next.forEach(c -> {
                 CommandNode<S> child = to.getChild(c.getName());
                 if (child != null) { stack.push(Pair.of(c, child)); }
             });

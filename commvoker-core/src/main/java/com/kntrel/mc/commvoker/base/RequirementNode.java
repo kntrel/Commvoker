@@ -14,47 +14,84 @@ class RequirementNode<S> implements Predicate<S> {
 
 
     //FIELDS
-    private final List<Predicate<S>> tests_;
-    private boolean passThrough_;
+    private final List<Predicate<S>> orTests_;
+    private final List<Predicate<S>> andTests_;
+    private boolean orAlways_;
 
 
     //CONSTRUCTORS
     public RequirementNode() {
-        this.tests_ = new ArrayList<>();
-        this.passThrough_ = false;
+        this.orTests_ = new ArrayList<>();
+        this.andTests_ = new ArrayList<>();
+        this.orAlways_ = false;
+    }
+    public RequirementNode(RequirementNode<S> other) {
+        this.orTests_ = new ArrayList<>(other.orTests_);
+        this.andTests_ = new ArrayList<>(other.andTests_);
+        this.orAlways_ = other.orAlways_;
     }
 
 
     //IMPLEMENTATION
     @Override
     public boolean test(S s) {
-        if (this.passThrough_) { return true; }
-        for (Predicate<S> test : this.tests_) {
-            if (test == null) { continue; }
-            if (!test.test(s)) { return false; }
-        }
-        return true;
+        return this.testOrs(s) && this.testAnds(s);
     }
 
     @Override @SuppressWarnings("unchecked")
     public RequirementNode<S> or(Predicate<? super S> other) {
-        if (this.passThrough_) { return this; }
+        if (this.orAlways_) { return this; }
 
         if (other instanceof RequirementNode<?> node) {
-            if (node.passThrough_) {
+            if (node.orAlways_) {
                 return this.orAlways();
             } else {
-                node.tests_.forEach(t -> this.tests_.add((Predicate<S>) t));
+                node.orTests_.forEach(t -> this.orTests_.add((Predicate<S>) t));
             }
         } else {
-            this.tests_.add((Predicate<S>) other);
+            this.orTests_.add((Predicate<S>) other);
         }
         return this;
     }
 
-    public RequirementNode<S> orAlways() {
-        this.passThrough_ = true;
-        this.tests_.clear();
+    @Override @SuppressWarnings("unchecked")
+    public RequirementNode<S> and(Predicate<? super S> other) {
+        if (other instanceof RequirementNode<?> node) {
+            node.andTests_.forEach(t -> this.andTests_.add((Predicate<S>) t));
+        } else {
+            this.andTests_.add((Predicate<S>) other);
+        }
         return this;
+    }
+    @Override
+    public RequirementNode<S> clone() {
+        return new RequirementNode<>(this);
+    }
+
+
+    //UTILITY
+    public RequirementNode<S> orAlways() {
+        this.orAlways_ = true;
+        this.orTests_.clear();
+        return this;
+    }
+
+
+    //HELPERS
+    private boolean testOrs(S s) {
+        if (this.orAlways_) { return true; }
+        if (this.orTests_.isEmpty()) { return true; }
+        for (Predicate<S> test : this.orTests_) {
+            if (test == null) { continue; }
+            if (test.test(s)) { return true; }
+        }
+        return false;
+    }
+    private boolean testAnds(S s) {
+        for (Predicate<S> test : this.andTests_) {
+            if (test == null) { continue; }
+            if (!test.test(s)) { return false; }
+        }
+        return true;
     }
 }
