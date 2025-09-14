@@ -1,9 +1,7 @@
-package com.kntrel.mc.commvoker.base;
+package com.kntrel.mc.commvoker.requirement;
 
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
-import com.kntrel.mc.commvoker.requirement.Requirement;
-import com.kntrel.mc.commvoker.requirement.Requires;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -12,6 +10,10 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.tree.CommandNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -32,6 +34,11 @@ public class RequiresTest {
             return true;
         }
     }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @Requires(MockRequirement.class)
+    public @interface MetaRequirement {}
 
     public static class Holder1 {
         @Command("test1")
@@ -56,6 +63,11 @@ public class RequiresTest {
 
         @Command("test1 test2 test3")
         public void test3() {}
+    }
+    public static class Holder4 {
+        @Command("test1")
+        @MetaRequirement
+        public void test() {}
     }
 
 
@@ -129,6 +141,16 @@ public class RequiresTest {
         assertDoesNotRequire(root);
         assertDoesNotRequire(sub1);
         assertDoesNotRequire(sub2);
+    }
+
+    @Test void metaRequirement() {
+        this.commvoker.register(new Holder4());
+
+        CommandNode<Object> root = this.commvoker.getCommandDispatcher().getRoot().getChild("test1");
+        assertNotNull(root);
+
+        assertEqualTrees(root, LiteralArgumentBuilder.literal("test1").build());
+        assertRequires(root);
     }
 
 
