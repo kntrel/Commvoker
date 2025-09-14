@@ -34,7 +34,8 @@ class CommandMethodInvoker<S> implements Command<S> {
 
     @Override public int run(CommandContext<S> ctx) throws CommandSyntaxException {
         if (this.requirement_ != null && !this.requirement_.test(ctx.getSource())) {
-            throw new CommandSyntaxException(null, () -> "Command requirements not met");
+            String input = ctx.getInput();
+            throw new CommandSyntaxException(null, () -> "Command requirements not met", input, input.length() - 1);
         }
 
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>(this.argumentParsers_.length);
