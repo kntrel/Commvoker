@@ -1,7 +1,10 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.ArgumentRegistry;
+import com.kntrel.mc.commvoker.error.CommandExceptionHandler;
+import com.kntrel.mc.commvoker.error.CommandExceptionResolver;
 import com.kntrel.mc.commvoker.provided.ArgumentBindings;
 import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
@@ -19,6 +22,7 @@ import com.mojang.brigadier.tree.CommandNode;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -26,6 +30,7 @@ public abstract class BaseCommvoker<S> {
 
     //FIELDS
     private final ArgumentResolverImpl<S> argumentResolver_;
+    private final CommandExceptionResolver exceptionResolver_;
     private final CommandParser<S> commandParser_;
     private final CommandDispatcher<S> dispatcher_;
     private final Set<Class<?>> instanceClasses_;
@@ -38,7 +43,8 @@ public abstract class BaseCommvoker<S> {
         this.sourceClass_ = sourceClass;
         this.dispatcher_ = commandDispatcher;
         this.argumentResolver_ = new ArgumentResolverImpl<>();
-        this.commandParser_ = new CommandParser<>(this.argumentResolver_);
+        this.exceptionResolver_ = new CommandExceptionResolverImpl();
+        this.commandParser_ = new CommandParser<>(this.argumentResolver_, this.exceptionResolver_);
         this.instanceClasses_ = new HashSet<>();
         this.requirements_ = new IdentityHashMap<>();
 
@@ -107,9 +113,16 @@ public abstract class BaseCommvoker<S> {
 
             LiteralArgumentBuilder<S> commandTree = parsed.tree();
             this.register(commandTree);
+
+            List<RequirementBridge<S>> annotated;
+            try {
+                annotated = this.extractRequirements(m);
+            } catch (BadCommandMethodException e) {
+                throw new BadCommandClassException(src, e);
+            }
             List<Predicate<S>> reqs = Stream.concat(
                     parsed.requirements().stream(),
-                    this.extractRequirements(m).stream()
+                    annotated.stream()
             ).toList();
             Predicate<S> req;
             if (reqs.isEmpty()) {
@@ -124,13 +137,23 @@ public abstract class BaseCommvoker<S> {
 
         this.instanceClasses_.add(src.getClass());
     }
-
     public void register(LiteralArgumentBuilder<S> tree) {
         this.dispatcher_.register(tree);
     }
-
     public int execute(String command, S src) throws CommandSyntaxException {
         return this.dispatcher_.execute(command, src);
+    }
+
+
+    //SHORTCUTS
+    public void registerArgument(ArgumentBinding<? super S, ?, ?> descriptor) {
+        this.argumentResolver_.register(descriptor);
+    }
+    public void registerExceptionHandler(CommandExceptionHandler<?> handler) {
+        this.exceptionResolver_.registerHandler(handler);
+    }
+    public <E extends Throwable> CommandExceptionHandler<E> unregisterExceptionHandler(Class<E> exceptionType, Function<E, CommandSyntaxException> handler) {
+        return this.exceptionResolver_.registerHandler(exceptionType, handler);
     }
 
 
@@ -138,14 +161,16 @@ public abstract class BaseCommvoker<S> {
     public ArgumentRegistry<S> getArgumentRegistry() {
         return this.argumentResolver_;
     }
-
     protected CommandDispatcher<S> getCommandDispatcher() {
         return this.dispatcher_;
+    }
+    public CommandExceptionResolver getExceptionResolver() {
+        return this.exceptionResolver_;
     }
 
 
     //HELPERS
-    private List<RequirementBridge<S>> extractRequirements(Method method) {
+    private List<RequirementBridge<S>> extractRequirements(Method method) throws BadCommandMethodException {
         List<RequirementBridge<S>> out = new ArrayList<>();
         for (var a : method.getAnnotations()) {
             Requires requires = (a instanceof Requires r) ? r : a.annotationType().getAnnotation(Requires.class);
@@ -154,7 +179,15 @@ public abstract class BaseCommvoker<S> {
             for (Class<? extends AnnotatedRequirement<?, ?>> reqClass : requires.value()) {
                 AnnotatedRequirement<?, ?> reqInstance = annotatedRequirementInstance(reqClass);
                 Annotation annotation = (reqInstance instanceof Requirement<?>) ? requires : a;
-                out.add(new RequirementBridge<>(this.sourceClass_, reqInstance, annotation));
+
+                RequirementBridge<S> bridge;
+                try {
+                    bridge = new RequirementBridge<>(this.sourceClass_, reqInstance, annotation);
+                } catch (IllegalArgumentException e) {
+                    throw new BadCommandMethodException(method, e.getMessage(), e);
+                }
+
+                out.add(bridge);
             }
         }
         return out;

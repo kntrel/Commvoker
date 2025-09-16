@@ -4,12 +4,12 @@ import com.kntrel.mc.commvoker.argument.binding.NameSupplier;
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
 import com.kntrel.mc.commvoker.argument.ArgumentResolver;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.CompiledArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TypedArgumentDescriptor;
 import com.kntrel.mc.commvoker.command.*;
+import com.kntrel.mc.commvoker.error.CommandExceptionResolver;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
@@ -19,7 +19,6 @@ import com.mojang.brigadier.tree.CommandNode;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 class CommandParser<S> {
@@ -30,11 +29,13 @@ class CommandParser<S> {
 
     //FIElDS
     private final ArgumentResolver<S> argumentResolver_;
+    private final CommandExceptionResolver exceptionResolver_;
 
 
     //CONSTRUCTORS
-    CommandParser(ArgumentResolver<S> argumentTypeResolver) {
+    CommandParser(ArgumentResolver<S> argumentTypeResolver, CommandExceptionResolver exceptionResolver) {
         this.argumentResolver_ = argumentTypeResolver;
+        this.exceptionResolver_ = exceptionResolver;
     }
 
 
@@ -171,7 +172,7 @@ class CommandParser<S> {
 
             Command<S> execution = null;
             if (i >= command.size() - 1) {
-                execution = new CommandMethodInvoker<>(instance, method, argumentParsers);
+                execution = new CommandMethodInvoker<>(instance, method, argumentParsers, this.exceptionResolver_);
             }
 
             if (t.isLiteral()) {
@@ -209,7 +210,7 @@ class CommandParser<S> {
         if (!tail.isEmpty()) {
             tail.forEach(root::then);
         } else {
-            root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers));
+            root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers, this.exceptionResolver_));
         }
         return new Result<>(root, requirements);
     }

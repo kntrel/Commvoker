@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
+import com.kntrel.mc.commvoker.error.CommandExceptionResolver;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -17,10 +18,11 @@ class CommandMethodInvoker<S> implements Command<S> {
     private final Method method_;
     private final ArgumentParser<S>[] argumentParsers_;
     private final Object instance_;
+    private final CommandExceptionResolver exceptionResolver_;
     private Predicate<S> requirement_;
 
 
-    CommandMethodInvoker(Object instance, Method method, ArgumentParser<S>[] arguments) {
+    CommandMethodInvoker(Object instance, Method method, ArgumentParser<S>[] arguments, CommandExceptionResolver exceptionResolver) {
         if (method.getParameterCount() != arguments.length) {
             throw new IllegalArgumentException("Method argument count isn't equal to ArgumentParser array length");
         }
@@ -28,16 +30,36 @@ class CommandMethodInvoker<S> implements Command<S> {
         this.instance_ = instance;
         this.method_ = method;
         this.argumentParsers_ = arguments;
+        this.exceptionResolver_ = exceptionResolver;
         this.requirement_ = null;
     }
 
-
     @Override public int run(CommandContext<S> ctx) throws CommandSyntaxException {
         if (this.requirement_ != null && !this.requirement_.test(ctx.getSource())) {
-            String input = ctx.getInput();
-            throw new CommandSyntaxException(null, () -> "Command requirements not met", input, input.length() - 1);
+            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().create();
         }
 
+        try {
+            return this.runInner(ctx);
+        } catch (Throwable e) {
+            CommandSyntaxException resolved = this.exceptionResolver_.resolve(e);
+            if (resolved != null) {
+                throw resolved;
+            }
+            throw new RuntimeException(e);
+        }
+    }
+
+    public CommandMethodInvoker<S> requires(Predicate<S> requirement) {
+        this.requirement_ = (this.requirement_ == null)
+                ? requirement
+                : this.requirement_.and(requirement);
+        return this;
+    }
+
+
+    //PRIVATE
+    public int runInner(CommandContext<S> ctx) {
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>(this.argumentParsers_.length);
         Map<String, Object> bag = new HashMap<>();
         for (ArgumentParser<S> parser : this.argumentParsers_) {
@@ -58,12 +80,5 @@ class CommandMethodInvoker<S> implements Command<S> {
         }
 
         return 0;
-    }
-
-    public CommandMethodInvoker<S> requires(Predicate<S> requirement) {
-        this.requirement_ = (this.requirement_ == null)
-                ? requirement
-                : this.requirement_.and(requirement);
-        return this;
     }
 }

@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class CommandParserTokenizeTest {
 
-    private final CommandParser<?> parser = new CommandParser<>(new ArgumentResolverImpl<>());
+    private final CommandParser<?> parser = new CommandParser<>(new ArgumentResolverImpl<>(), new CommandExceptionResolverImpl());
 
     @Test void tokenize_literal1() {
         var tokens = assertValidTokens("foo");
