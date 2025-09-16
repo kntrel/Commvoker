@@ -152,7 +152,7 @@ public abstract class BaseCommvoker<S> {
     public void registerExceptionHandler(CommandExceptionHandler<?> handler) {
         this.exceptionResolver_.registerHandler(handler);
     }
-    public <E extends Throwable> CommandExceptionHandler<E> unregisterExceptionHandler(Class<E> exceptionType, Function<E, CommandSyntaxException> handler) {
+    public <E extends Throwable> CommandExceptionHandler<E> registerExceptionHandler(Class<E> exceptionType, Function<E, CommandSyntaxException> handler) {
         return this.exceptionResolver_.registerHandler(exceptionType, handler);
     }
 

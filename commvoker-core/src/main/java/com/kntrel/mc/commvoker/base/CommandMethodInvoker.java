@@ -41,12 +41,16 @@ class CommandMethodInvoker<S> implements Command<S> {
 
         try {
             return this.runInner(ctx);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         } catch (Throwable e) {
-            CommandSyntaxException resolved = this.exceptionResolver_.resolve(e);
+            Throwable throwable = e;
+            if (throwable instanceof InvocationTargetException ie) { throwable = ie.getTargetException(); }
+            CommandSyntaxException resolved = this.exceptionResolver_.resolve(throwable);
             if (resolved != null) {
                 throw resolved;
             }
-            throw new RuntimeException(e);
+            throw new RuntimeException(throwable);
         }
     }
 
@@ -59,7 +63,7 @@ class CommandMethodInvoker<S> implements Command<S> {
 
 
     //PRIVATE
-    public int runInner(CommandContext<S> ctx) {
+    public int runInner(CommandContext<S> ctx) throws InvocationTargetException, IllegalAccessException {
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>(this.argumentParsers_.length);
         Map<String, Object> bag = new HashMap<>();
         for (ArgumentParser<S> parser : this.argumentParsers_) {
@@ -68,12 +72,8 @@ class CommandMethodInvoker<S> implements Command<S> {
         }
 
         Object[] args = descriptors.stream().map(InstancedArgumentDescriptor::value).toArray();
-        Object returned;
-        try {
-            returned = this.method_.invoke(this.instance_, args);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
+        Object returned = this.method_.invoke(this.instance_, args);
+
 
         if (Number.class.isAssignableFrom(this.method_.getReturnType())) {
             return (int) returned;
