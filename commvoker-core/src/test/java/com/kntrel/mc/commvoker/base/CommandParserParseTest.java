@@ -76,7 +76,7 @@ public class CommandParserParseTest {
                 .toAnnotation(MockImplicit.class)
                 .toClass(Object.class)
                 .bind());
-        this.parser = new CommandParser<>(resolver);
+        this.parser = new CommandParser<>(resolver, new CommandExceptionResolverImpl());
     }
 
 
