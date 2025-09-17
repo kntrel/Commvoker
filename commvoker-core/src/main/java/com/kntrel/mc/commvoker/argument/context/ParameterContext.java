@@ -9,6 +9,7 @@ import java.util.Objects;
 public class ParameterContext {
 
     //FIELDS
+    private final Object commandHolder_;
     private final Parameter parameter_;
     private final Type type_;
     private final Method method_;
@@ -17,6 +18,7 @@ public class ParameterContext {
 
     //CONSTRUCTORS
     public ParameterContext(
+            Object commandHolder,
             Parameter parameter,
             Type type,
             Method method,
@@ -29,17 +31,19 @@ public class ParameterContext {
             throw new IndexOutOfBoundsException(parameterIndex);
         }
 
+        this.commandHolder_ = commandHolder;
         this.parameter_ = Objects.requireNonNull(parameter, "parameter");
         this.type_ = Objects.requireNonNull(type);
         this.method_ = Objects.requireNonNull(method, "method");
         this.parameterIndex_ = parameterIndex;
     }
     public ParameterContext(ParameterContext other) {
-        this(other.parameter_, other.type_, other.method_, other.parameterIndex_);
+        this(other.commandHolder_, other.parameter_, other.type_, other.method_, other.parameterIndex_);
     }
 
 
     //GETTERS
+    public Object commandHolder() { return this.commandHolder_; }
     public Parameter parameter() { return this.parameter_; }
     public Type type() { return this.type_; }
     public Method method() { return this.method_; }

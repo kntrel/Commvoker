@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
@@ -18,15 +19,17 @@ class ArgumentParser<S> {
     //FIELDS
     private final Map<String, String> namesMap_;
     private final ArgumentDescriptor<? super S, ?> descriptor_;
+    private final ParameterContext parameterContext_;
 
 
     //CONSTRUCTORS
-    ArgumentParser(Map<String, String> namesMap, ArgumentDescriptor<? super S, ?> descriptor) {
+    ArgumentParser(Map<String, String> namesMap, ArgumentDescriptor<? super S, ?> descriptor, ParameterContext argumentContext) {
         this.namesMap_ = namesMap;
         this.descriptor_ = descriptor;
+        this.parameterContext_ = argumentContext;
     }
-    ArgumentParser(ArgumentDescriptor<? super S, ?> descriptor) {
-        this(EMPTY, descriptor);
+    ArgumentParser(ArgumentDescriptor<? super S, ?> descriptor, ParameterContext argumentContext) {
+        this(EMPTY, descriptor, argumentContext);
     }
 
     //GETTERS
@@ -34,7 +37,7 @@ class ArgumentParser<S> {
 
     //UTIL
     InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
-        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(ctx, this.components(ctx), previous, bag));
+        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(this.parameterContext_, ctx, this.components(ctx), previous, bag));
         return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
     }
 
@@ -61,5 +64,9 @@ class ArgumentParser<S> {
         } catch (IllegalArgumentException ignored) {}
 
         return compMap;
+    }
+
+    ParameterContext parameterContext() {
+        return this.parameterContext_;
     }
 }

@@ -1,6 +1,9 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.command.Command;
+import com.kntrel.mc.commvoker.error.FailTrigger;
+import com.kntrel.mc.commvoker.exception.CommandMethodRunException;
+import com.kntrel.mc.commvoker.exception.FailedCommandException;
 import com.kntrel.mc.commvoker.mock.MockCommvoker;
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -19,6 +22,11 @@ public class CommvokerExceptionHandleTest {
         @Command("test")
         public void test() {
             throw new RuntimeException("error");
+        }
+
+        @Command("test2")
+        public void test2(FailTrigger failTrigger) throws FailedCommandException {
+            failTrigger.fail("failed");
         }
     }
 
@@ -44,5 +52,13 @@ public class CommvokerExceptionHandleTest {
 
         CommandSyntaxException ex = assertThrows(CommandSyntaxException.class, () -> this.commvoker.execute("test", new Object()));
         assertEquals(ex.getMessage(), "error");
+    }
+
+    @Test void testFailTrigger() {
+        CommandMethodRunException ex = assertThrows(CommandMethodRunException.class, () -> this.commvoker.execute("test2", new Object()));
+
+        assertEquals("test2", ex.getCommandMethod().getName());
+        assertInstanceOf(Holder.class, ex.getCommandHolder());
+        assertEquals(ex.getMessage(), "failed");
     }
 }

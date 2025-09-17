@@ -2,14 +2,16 @@ package com.kntrel.mc.commvoker.provided.assemblers;
 
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
+import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CollectionAssemblerTest {
-
     private static List<String> collectArgumentLabels(CommandTemplate<?> t) {
         List<String> labels = new ArrayList<>();
         Deque<CommandTemplate.Element<?>> st = new ArrayDeque<>(t.trees());
@@ -38,7 +40,16 @@ public class CollectionAssemblerTest {
     private static <S> ExecutionContext<S> context(Object... kv) {
         Map<String, Object> m = new HashMap<>();
         for (int i = 0; i + 1 < kv.length; i += 2) m.put((String) kv[i], kv[i + 1]);
-        return new ExecutionContext<>(null, m, List.of(), Map.of());
+
+        Method method;
+        try {
+            method = CollectionAssemblerTest.class.getDeclaredMethod("context", Object[].class);
+            method.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+        ParameterContext paramContext = new ParameterContext(null, method.getParameters()[0], Object.class, method, 0);
+        return new ExecutionContext<>(paramContext, null, m, List.of(), Map.of());
     }
 
     /* ========================================================================== */

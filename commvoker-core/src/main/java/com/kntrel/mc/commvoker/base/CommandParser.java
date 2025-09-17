@@ -115,12 +115,13 @@ class CommandParser<S> {
         Queue<ParamInfo> explicitParams = new LinkedList<>();
         for (int i = 0; i < params.length; i++) {
             Parameter param = params[i];
+            ParameterContext paramContext = new ParameterContext(instance, param, param.getParameterizedType(), method, i);
             try {
-                ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ParameterContext(param, param.getParameterizedType(), method, i));
+                ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(paramContext);
                 if (descriptor.requirement() != null) {
                     requirements.add((Predicate<S>) descriptor.requirement());
                 }
-                argumentParsers[i] = new ArgumentParser<>(descriptor);
+                argumentParsers[i] = new ArgumentParser<>(descriptor, paramContext);
                 continue;
             } catch (NoSuchArgumentBindingException ignores) {}
             explicitParams.add(new ParamInfo(param, i));
@@ -189,7 +190,8 @@ class CommandParser<S> {
 
             ParamInfo paramInfo = paramMap.get(t.label());
             Parameter param = paramInfo.param();
-            TemplatedArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(new ArgumentContext(param, param.getParameterizedType(), method, paramInfo.index(), command, i, descriptors));
+            ArgumentContext argContext = new ArgumentContext(instance, param, param.getParameterizedType(), method, paramInfo.index(), command, i, descriptors);
+            TemplatedArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(argContext);
             if (descriptor.requirement() != null) {
                 requirements.add((Predicate<S>) descriptor.requirement());
             }
@@ -201,7 +203,7 @@ class CommandParser<S> {
                     : compiler.compile(typedDescriptor, nameSupplier, execution));
             upstream.forEach(n -> compiled.compiled().roots().forEach(n::addChild));
             upstream = compiled.compiled().leaves();
-            argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor);
+            argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor, argContext);
         }
 
         LiteralArgumentBuilder<S> root = LiteralArgumentBuilder.literal(command.getLabelAt(0));

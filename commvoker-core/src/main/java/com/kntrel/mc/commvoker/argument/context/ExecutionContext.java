@@ -5,14 +5,14 @@ import com.mojang.brigadier.context.CommandContext;
 import java.util.List;
 import java.util.Map;
 
-public class ExecutionContext<S> {
+public class ExecutionContext<S> extends ParameterContext {
 
     //FACTORY
     public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, Map<String, Object> components) {
-        return new ExecutionContext<>(original.commandContext(), components, original.previousArgumentDescriptors(), original.bag_);
+        return new ExecutionContext<>(original, original.commandContext(), components, original.previousArgumentDescriptors(), original.bag_);
     }
     public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, List<InstancedArgumentDescriptor<S, ?>> previous) {
-        return new ExecutionContext<>(original.commandContext(), original.components_, previous, original.bag_);
+        return new ExecutionContext<>(original, original.commandContext(), original.components_, previous, original.bag_);
     }
 
 
@@ -26,11 +26,13 @@ public class ExecutionContext<S> {
     
     //CONSTRUCTOR
     public ExecutionContext(
+            ParameterContext context,
             CommandContext<? extends S> commandContext,
             Map<String, Object> components,
             List<InstancedArgumentDescriptor<S, ?>> previous,
             Map<String, Object> bag
     ) {
+        super(context.commandHolder(), context.parameter(), context.type(), context.method(), context.parameterIndex());
         this.commandContext_ = commandContext;
         this.components_ = Map.copyOf(components);
         this.previous_ = List.copyOf(previous);
