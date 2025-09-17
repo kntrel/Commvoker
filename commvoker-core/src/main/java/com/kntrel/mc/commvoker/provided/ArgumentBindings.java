@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.provided;
 
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
+import com.kntrel.mc.commvoker.error.FailTrigger;
 import com.kntrel.mc.commvoker.provided.annotations.Max;
 import com.kntrel.mc.commvoker.provided.annotations.Min;
 import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
@@ -20,9 +21,11 @@ import java.util.function.Function;
 import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
 
 public final class ArgumentBindings {
-    private ArgumentBindings() {}
+    private ArgumentBindings() {
+    }
 
     private static final Set<Class<?>> PRIMITIVES = Set.of(boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class);
+
     private static Class<?> boxed(Class<?> primitive) {
         if (primitive.equals(boolean.class)) {
             return Boolean.class;
@@ -35,6 +38,7 @@ public final class ArgumentBindings {
         }
         return Integer.class;
     }
+
     private static <T extends Number, A extends Assembler<?, T>> A rangeNumber(
             BiFunction<T, T, A> builder,
             Function<Double, T> translator,
@@ -42,13 +46,20 @@ public final class ArgumentBindings {
             T max,
             ArgumentGatherer<?> context
     ) {
-        if (context.isAnnotationPresent(Min.class)) { min = translator.apply(context.getAnnotation(Min.class).value()); }
-        if (context.isAnnotationPresent(Max.class)) { max = translator.apply(context.getAnnotation(Max.class).value()); }
+        if (context.isAnnotationPresent(Min.class)) {
+            min = translator.apply(context.getAnnotation(Min.class).value());
+        }
+        if (context.isAnnotationPresent(Max.class)) {
+            max = translator.apply(context.getAnnotation(Max.class).value());
+        }
         return builder.apply(min, max);
     }
 
 
     public static final ArgumentBinding<Object, ?, ?>
+        FAIL_TRIGGER = implicit(FailTrigger::new)
+            .toClass(FailTrigger.class)
+            .bind(),
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
                 if (!(ctx.parameter().getType().equals(String.class))) { return StringAssembler.string(); }

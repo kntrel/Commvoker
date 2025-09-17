@@ -57,6 +57,7 @@ class ArgumentResolverImplTest {
     private static ArgumentContext ctx(Method m, int paramIdx) {
         Parameter p = m.getParameters()[paramIdx];
         return new ArgumentContext(
+                null,
                 p,
                 p.getParameterizedType(),
                 m,
@@ -146,6 +147,7 @@ class ArgumentResolverImplTest {
     void throwsWhenNoBindingMatches() throws NoSuchMethodException {
         Method m = getClass().getDeclaredMethod("noBinding", UUID.class);
         var badCtx = new ArgumentContext(
+                null,
                 m.getParameters()[0],
                 UUID.class,
                 m,

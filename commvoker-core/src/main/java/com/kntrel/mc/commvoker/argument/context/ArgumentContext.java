@@ -19,6 +19,7 @@ public class ArgumentContext extends ParameterContext {
 
     //CONSTRUCTORS
     public ArgumentContext(
+            Object commandHolder,
             Parameter parameter,
             Type type,
             Method method,
@@ -27,7 +28,7 @@ public class ArgumentContext extends ParameterContext {
             int commandTokenIndex,
             SequencedCollection<TypedArgumentDescriptor<?, ?>> previous
     ) {
-        super(parameter, type, method, parameterIndex);
+        super(commandHolder, parameter, type, method, parameterIndex);
         if (commandTokenIndex < 0) {
             throw new IndexOutOfBoundsException(commandTokenIndex);
         }
@@ -40,7 +41,7 @@ public class ArgumentContext extends ParameterContext {
         this.previous_ = List.copyOf(previous);
     }
     public ArgumentContext(ArgumentContext other) {
-        this(other.parameter(), other.type(), other.method(), other.parameterIndex(), other.command_, other.commandTokenIndex_, other.previous_);
+        this(other.commandHolder(), other.parameter(), other.type(), other.method(), other.parameterIndex(), other.command_, other.commandTokenIndex_, other.previous_);
     }
 
 

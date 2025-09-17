@@ -45,7 +45,7 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
         }
 
         Map<String, Object> compMap = (lastParser != null) ? lastParser.components(context) : Collections.emptyMap();
-        ExecutionContext<S> execCtx = new ExecutionContext<>(context, compMap, descriptors, bag);
+        ExecutionContext<S> execCtx = new ExecutionContext<>(lastParser.parameterContext(), context, compMap, descriptors, bag);
         return this.suggester_.suggest(execCtx, builder);
     }
 
@@ -81,7 +81,7 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
         @Override public T value() { return this.resolve().value(); }
 
         //PRIVATE
-        InstancedArgumentDescriptor<S, T> resolve() {
+        private InstancedArgumentDescriptor<S, T> resolve() {
             if (this.cached_ != null) {
                 return this.cached_;
             }

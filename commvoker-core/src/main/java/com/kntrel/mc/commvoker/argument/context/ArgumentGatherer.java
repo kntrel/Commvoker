@@ -25,7 +25,7 @@ public class ArgumentGatherer<S> extends ArgumentContext {
             return resolveNext();
         }
 
-        ArgumentContext newContext = new ArgumentContext(this.parameter(), type, this.method(), this.parameterIndex(), this.command(), this.parameterIndex(), this.previous());
+        ArgumentContext newContext = new ArgumentContext(this.commandHolder(), this.parameter(), type, this.method(), this.parameterIndex(), this.command(), this.parameterIndex(), this.previous());
         ArgumentDescriptor<? super S, ?> descriptor = this.argumentResolver_.resolve(newContext);
         this.gathered_.add(descriptor);
         return descriptor;

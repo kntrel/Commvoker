@@ -17,7 +17,7 @@ class CommandMethodInvoker<S> implements Command<S> {
 
     private final Method method_;
     private final ArgumentParser<S>[] argumentParsers_;
-    private final Object instance_;
+    private final Object commandHolder_;
     private final CommandExceptionResolver exceptionResolver_;
     private Predicate<S> requirement_;
 
@@ -27,7 +27,7 @@ class CommandMethodInvoker<S> implements Command<S> {
             throw new IllegalArgumentException("Method argument count isn't equal to ArgumentParser array length");
         }
 
-        this.instance_ = instance;
+        this.commandHolder_ = instance;
         this.method_ = method;
         this.argumentParsers_ = arguments;
         this.exceptionResolver_ = exceptionResolver;
@@ -72,7 +72,7 @@ class CommandMethodInvoker<S> implements Command<S> {
         }
 
         Object[] args = descriptors.stream().map(InstancedArgumentDescriptor::value).toArray();
-        Object returned = this.method_.invoke(this.instance_, args);
+        Object returned = this.method_.invoke(this.commandHolder_, args);
 
 
         if (Number.class.isAssignableFrom(this.method_.getReturnType())) {
