@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
+import com.kntrel.mc.commvoker.callback.ReturnCallback;
 import com.kntrel.mc.commvoker.command.Command;
 import com.kntrel.mc.commvoker.argument.ArgumentRegistry;
 import com.kntrel.mc.commvoker.error.CommandExceptionHandler;
@@ -36,6 +37,7 @@ public abstract class BaseCommvoker<S> {
     private final Set<Class<?>> instanceClasses_;
     private final Class<S> sourceClass_;
     private final Map<CommandNode<S>, Predicate<S>> requirements_;
+    private final CallbackManager<S> callbackManager_;
 
 
     //CONSTRUCTORS
@@ -47,6 +49,7 @@ public abstract class BaseCommvoker<S> {
         this.commandParser_ = new CommandParser<>(this.argumentResolver_, this.exceptionResolver_);
         this.instanceClasses_ = new HashSet<>();
         this.requirements_ = new IdentityHashMap<>();
+        this.callbackManager_ = new CallbackManager<>();
 
         ArgumentBindings.all().forEach(this.argumentResolver_::register);
     }
@@ -113,6 +116,7 @@ public abstract class BaseCommvoker<S> {
 
             LiteralArgumentBuilder<S> commandTree = parsed.tree();
             this.register(commandTree);
+            this.callbackManager_.addInvoker(parsed.invoker());
 
             List<RequirementBridge<S>> annotated;
             try {
@@ -145,7 +149,7 @@ public abstract class BaseCommvoker<S> {
     }
 
 
-    //SHORTCUTS
+    //CONFIG
     public void registerArgument(ArgumentBinding<? super S, ?, ?> descriptor) {
         this.argumentResolver_.register(descriptor);
     }
@@ -154,6 +158,13 @@ public abstract class BaseCommvoker<S> {
     }
     public <E extends Throwable> CommandExceptionHandler<E> registerExceptionHandler(Class<E> exceptionType, Function<E, CommandSyntaxException> handler) {
         return this.exceptionResolver_.registerHandler(exceptionType, handler);
+    }
+    public void registerCallback(ReturnCallback<? super S, ?> callback) {
+        this.callbackManager_.addCallback(callback);
+    }
+    @SuppressWarnings("rawtypes")
+    public void removeCallback(Class<? extends ReturnCallback> callbackClass) {
+        this.callbackManager_.removeCallback(callbackClass);
     }
 
 

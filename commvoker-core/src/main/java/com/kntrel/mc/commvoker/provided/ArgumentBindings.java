@@ -63,7 +63,7 @@ public final class ArgumentBindings {
         STRING = argumentAssembler(ctx -> {
                 if (ctx.isAnnotationPresent(Word.class)) { return StringAssembler.word(); }
                 if (!(ctx.parameter().getType().equals(String.class))) { return StringAssembler.string(); }
-                if (ctx.commandTokenIndex() == ctx.command().size() - 1 && !ctx.isAnnotationPresent(NotGreedy.class)) { return StringAssembler.greedyString(); }
+                if (ctx.commandTokenIndex() == ctx.command().tokenCount() - 1 && !ctx.isAnnotationPresent(NotGreedy.class)) { return StringAssembler.greedyString(); }
                 return StringAssembler.string();
             })
             .toClass(String.class)
@@ -114,7 +114,7 @@ public final class ArgumentBindings {
                 ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
                 Assembler<?, ?> asm = Assembler.ofArgumentDescriptor(descriptor);
-                var bind = (ctx.commandTokenIndex() == ctx.command().size() - 1)
+                var bind = (ctx.commandTokenIndex() == ctx.command().tokenCount() - 1)
                         ? CollectionAssembler.relaxedListOf(asm)
                         : CollectionAssembler.listOf(asm);
                 return (Assembler<Object, List<?>>) bind;
@@ -126,7 +126,7 @@ public final class ArgumentBindings {
                 ParameterizedType parameterizedType = (ParameterizedType) ctx.type();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(parameterizedType.getActualTypeArguments()[0]);
                 Assembler<?, ?> asm = Assembler.ofArgumentDescriptor(descriptor);
-                var bind = (ctx.commandTokenIndex() == ctx.command().size() - 1)
+                var bind = (ctx.commandTokenIndex() == ctx.command().tokenCount() - 1)
                         ? CollectionAssembler.relaxedSetOf(asm)
                         : CollectionAssembler.setOf(asm);
                 return (Assembler<Object, Set<?>>) bind;
@@ -138,7 +138,7 @@ public final class ArgumentBindings {
                 Class<Object> type = (Class<Object>) ((Class<Object>) ctx.type()).componentType();
                 ArgumentDescriptor<?, ?> descriptor = ctx.resolve(type);
                 Assembler<Object, Object> asm = (Assembler<Object, Object>) Assembler.ofArgumentDescriptor(descriptor);
-                return (ctx.commandTokenIndex() == ctx.command().size() - 1)
+                return (ctx.commandTokenIndex() == ctx.command().tokenCount() - 1)
                         ? ArrayAssembler.relaxedArrayOf(type, asm)
                         : ArrayAssembler.arrayOf(type, asm);
             })

@@ -24,7 +24,7 @@ import java.util.function.Predicate;
 class CommandParser<S> {
 
     //ASSETS
-    public record Result<S>(LiteralArgumentBuilder<S> tree, List<Predicate<S>> requirements) {}
+    public record Result<S>(LiteralArgumentBuilder<S> tree, List<Predicate<S>> requirements, CommandMethodInvoker<S> invoker) {}
 
 
     //FIElDS
@@ -161,26 +161,27 @@ class CommandParser<S> {
             tokens.add(CommandToken.argument(label));
             paramMap.put(label, paramInfo);
         }
-        CommandDefinition command = new CommandDefinition(tokens);
+        CommandMethod command = new CommandMethod(tokens, method, instance, pattern);
 
         //Resolving explicit arguments
         CommandNode<S> head = LiteralArgumentBuilder.<S>literal("___head___").build();
         List<CommandNode<S>> upstream = List.of(head);
         List<TypedArgumentDescriptor<?, ?>> descriptors = new ArrayList<>();
         ArgumentDescriptorCompiler<S> compiler = new ArgumentDescriptorCompiler<>(argumentParsers);
-        for (int i = 1; i < command.size(); i++) {
+        CommandMethodInvoker<S> invoker = null;
+
+        for (int i = 1; i < command.tokenCount(); i++) {
             CommandToken t = command.getTokenAt(i);
 
-            Command<S> execution = null;
-            if (i >= command.size() - 1) {
-                execution = new CommandMethodInvoker<>(instance, method, argumentParsers, this.exceptionResolver_);
+            if (i >= command.tokenCount() - 1) {
+                invoker = new CommandMethodInvoker<>(instance, command, argumentParsers, this.exceptionResolver_);
             }
 
             if (t.isLiteral()) {
                 LiteralArgumentBuilder<S> lit = LiteralArgumentBuilder.literal(t.label());
                 lit.requires(new RequirementNode<>());
-                if (execution != null) {
-                    lit.executes(execution);
+                if (instance != null) {
+                    lit.executes(invoker);
                 }
                 CommandNode<S> litNode = lit.build();
                 upstream.forEach(n -> n.addChild(litNode));
@@ -198,9 +199,7 @@ class CommandParser<S> {
             TypedArgumentDescriptor<? super S, ?> typedDescriptor = TypedArgumentDescriptor.of(descriptor, param.getParameterizedType());
             descriptors.add(typedDescriptor);
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
-            CompiledArgumentDescriptor<S, ?> compiled = (CompiledArgumentDescriptor<S, ?>) ((execution == null)
-                    ? compiler.compile(typedDescriptor, nameSupplier)
-                    : compiler.compile(typedDescriptor, nameSupplier, execution));
+            CompiledArgumentDescriptor<S, ?> compiled = (CompiledArgumentDescriptor<S, ?>) compiler.compile(typedDescriptor, nameSupplier, invoker);
             upstream.forEach(n -> compiled.compiled().roots().forEach(n::addChild));
             upstream = compiled.compiled().leaves();
             argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor, argContext);
@@ -212,9 +211,10 @@ class CommandParser<S> {
         if (!tail.isEmpty()) {
             tail.forEach(root::then);
         } else {
-            root.executes(new CommandMethodInvoker<>(instance, method, argumentParsers, this.exceptionResolver_));
+            invoker = new CommandMethodInvoker<>(instance, command, argumentParsers, this.exceptionResolver_);
+            root.executes(invoker);
         }
-        return new Result<>(root, requirements);
+        return new Result<>(root, requirements, invoker);
     }
 
     private static CommandPatternToken.Type categorize(String word) {

@@ -20,6 +20,7 @@ class ArgumentParser<S> {
     private final Map<String, String> namesMap_;
     private final ArgumentDescriptor<? super S, ?> descriptor_;
     private final ParameterContext parameterContext_;
+    boolean implicit = false;
 
 
     //CONSTRUCTORS
@@ -30,10 +31,12 @@ class ArgumentParser<S> {
     }
     ArgumentParser(ArgumentDescriptor<? super S, ?> descriptor, ParameterContext argumentContext) {
         this(EMPTY, descriptor, argumentContext);
+        this.implicit = true;
     }
 
     //GETTERS
     public ArgumentDescriptor<? super S, ?> argumentDescriptor() { return this.descriptor_; }
+    public boolean isImplicit() { return this.implicit; }
 
     //UTIL
     InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
