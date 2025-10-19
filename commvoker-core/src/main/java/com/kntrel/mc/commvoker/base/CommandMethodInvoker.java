@@ -53,6 +53,8 @@ class CommandMethodInvoker<S> implements Command<S> {
 
         try {
             return this.runInner(ctx);
+        } catch (CommandSyntaxException e) {
+            throw e;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         } catch (Throwable e) {
@@ -99,7 +101,7 @@ class CommandMethodInvoker<S> implements Command<S> {
 
 
     //PRIVATE
-    public int runInner(CommandContext<S> ctx) throws InvocationTargetException, IllegalAccessException {
+    public int runInner(CommandContext<S> ctx) throws InvocationTargetException, IllegalAccessException, CommandSyntaxException {
         int len = this.argumentParsers_.length;
         List<InstancedArgumentDescriptor<S, ?>> descriptors = new ArrayList<>(len);
         Object[] args = new Object[len];
