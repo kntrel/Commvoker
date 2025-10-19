@@ -32,7 +32,7 @@ public class ArgumentContext extends ParameterContext {
         if (commandTokenIndex < 0) {
             throw new IndexOutOfBoundsException(commandTokenIndex);
         }
-        if (commandTokenIndex >= command.size()) {
+        if (commandTokenIndex >= command.tokenCount()) {
             throw new IndexOutOfBoundsException(commandTokenIndex);
         }
 

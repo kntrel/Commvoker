@@ -8,20 +8,32 @@ import java.util.stream.Collectors;
 public class CommandDefinition implements Iterable<CommandToken> {
 
     private final CommandToken[] tokens_;
+    private final int literalCount_;
 
     public CommandDefinition(CommandToken[] tokens) {
         if (tokens.length < 1) {
             throw new IllegalArgumentException("Empty tokens array is illegal");
         }
         this.tokens_ = Arrays.copyOf(tokens, tokens.length);
+        int literalCount = 0;
+        for (CommandToken t : this.tokens_) {
+            if (t.isLiteral()) { literalCount++; }
+        }
+        this.literalCount_ = literalCount;
     }
     public CommandDefinition(Collection<CommandToken> tokens) {
         this(tokens.toArray(new CommandToken[0]));
     }
 
 
-    public int size() {
+    public int tokenCount() {
         return this.tokens_.length;
+    }
+    public int literalCount() {
+        return this.literalCount_;
+    }
+    public int argumentCount() {
+        return this.tokenCount() - this.literalCount();
     }
     public CommandToken getTokenAt(int index) {
         return this.tokens_[index];
