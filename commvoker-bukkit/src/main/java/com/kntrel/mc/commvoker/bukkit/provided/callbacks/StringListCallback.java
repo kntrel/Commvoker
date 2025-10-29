@@ -5,7 +5,7 @@ import com.kntrel.mc.commvoker.command.CommandMethodContext;
 import org.bukkit.command.CommandSender;
 import java.util.List;
 
-public class StringListReturnCallback implements ReturnCallback<CommandSender, List<String>> {
+public class StringListCallback implements ReturnCallback<CommandSender, List<String>> {
 
     @Override
     public void onReturn(CommandMethodContext<? extends CommandSender> context, List<String> returnValue) {
