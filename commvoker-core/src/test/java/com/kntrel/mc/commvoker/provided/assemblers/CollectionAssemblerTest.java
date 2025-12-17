@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
+import com.kntrel.mc.commvoker.argument.Component;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
@@ -38,8 +39,11 @@ public class CollectionAssemblerTest {
     }
 
     private static <S> ExecutionContext<S> context(Object... kv) {
-        Map<String, Object> m = new HashMap<>();
-        for (int i = 0; i + 1 < kv.length; i += 2) m.put((String) kv[i], kv[i + 1]);
+        Map<String, Component<S>> m = new HashMap<>();
+        for (int i = 0; i + 1 < kv.length; i += 2) {
+            String key = (String) kv[i];
+            m.put(key, Component.of(key, kv[i + 1]));
+        }
 
         Method method;
         try {

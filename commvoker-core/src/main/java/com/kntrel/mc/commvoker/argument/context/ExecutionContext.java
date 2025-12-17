@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.argument.context;
 
+import com.kntrel.mc.commvoker.argument.Component;
 import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.Map;
 public class ExecutionContext<S> extends ParameterContext {
 
     //FACTORY
-    public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, Map<String, Object> components) {
+    public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, Map<String, Component<S>> components) {
         return new ExecutionContext<>(original, original.commandContext(), components, original.previousArgumentDescriptors(), original.bag_);
     }
     public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, List<InstancedArgumentDescriptor<S, ?>> previous) {
@@ -19,7 +20,7 @@ public class ExecutionContext<S> extends ParameterContext {
 
     //FIELDS
     private final CommandContext<? extends S> commandContext_;
-    private final Map<String, Object> components_;
+    private final Map<String, Component<S>> components_;
     private final List<InstancedArgumentDescriptor<S, ?>> previous_;
     private final Map<String, Object> bag_;
     
@@ -28,7 +29,7 @@ public class ExecutionContext<S> extends ParameterContext {
     public ExecutionContext(
             ParameterContext context,
             CommandContext<? extends S> commandContext,
-            Map<String, Object> components,
+            Map<String, Component<S>> components,
             List<InstancedArgumentDescriptor<S, ?>> previous,
             Map<String, Object> bag
     ) {
@@ -47,9 +48,21 @@ public class ExecutionContext<S> extends ParameterContext {
     
     //COMPONENTS
     public <T> T component(String key, Class<T> type) {
-        return fetchFromMap(this.components_, key, type, "The '" + key + "' component");
+        Component<S> comp = this.components_.get(key);
+        if (comp == null) { return null; }
+        Object o = comp.value();
+        if (o == null) { return null; }
+        if (!type.isAssignableFrom(o.getClass())) {
+            throw new ClassCastException("The " + key + " component is of type '" + o.getClass().getName() + "'. Not compatible with '" + type.getName() + "'");
+        }
+        return type.cast(o);
     }
     public Object component(String key) {
+        Component<S> comp = this.components_.get(key);
+        if (comp == null) { return null; }
+        return comp.value();
+    }
+    public Component<S> componentDescriptor(String key) {
         return this.components_.get(key);
     }
     public boolean hasComponent(String key) {

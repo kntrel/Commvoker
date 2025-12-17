@@ -1,10 +1,12 @@
 package com.kntrel.mc.commvoker.base;
 
+import com.kntrel.mc.commvoker.argument.Component;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.InstancedArgumentDescriptor;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.context.ParsedCommandNode;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,12 +60,16 @@ class ArgumentParser<S> {
         return true;
     }
 
-    Map<String, Object> components(CommandContext<?> ctx) {
-        Map<String, Object> compMap = new HashMap<>();
+    Map<String, Component<S>> components(CommandContext<?> ctx) {
+        Map<String, Component<S>> compMap = new HashMap<>();
+        Map<String, ParsedCommandNode<S>> nodesMap = ctx.getNodes().stream()
+                .collect(HashMap::new, (m, n) -> m.put(n.getNode().getName(), (ParsedCommandNode<S>) n), HashMap::putAll);
 
         for (var e : this.namesMap_.entrySet()) try {
             Object o = ctx.getArgument(e.getKey(), Object.class);
-            compMap.put(e.getValue(), o);
+            ParsedCommandNode<S> node = nodesMap.get(e.getKey());
+            Component<S> comp = Component.fromNodes(e.getKey(), o, List.of(node));
+            compMap.put(e.getValue(), comp);
         } catch (IllegalArgumentException ignored) {}
 
         return compMap;

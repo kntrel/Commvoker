@@ -1,5 +1,6 @@
 package com.kntrel.mc.commvoker.provided.assemblers;
 
+import com.kntrel.mc.commvoker.argument.Component;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
@@ -105,18 +106,18 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
                 : strictArgumentTemplate();
     }
 
-    @Override
+    @Override @SuppressWarnings("unchecked")
     public C contextualize(ExecutionContext<? extends S> ctx) {
         List<T> list = new ArrayList<>(this.max_);
         outer : for (int i = 0; i < this.max_; i++) {
-            Map<String, Object> compMap = new HashMap<>();
+            Map<String, Component<S>> compMap = new HashMap<>();
             for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
-                Object o = ctx.component(entry.getValue());
-                if (o == null) { continue outer; }
-                compMap.put(entry.getKey(), o);
+                Component<S> comp = (Component<S>) ctx.componentDescriptor(entry.getValue());
+                if (comp == null) { continue outer; }
+                compMap.put(entry.getKey(), comp);
             }
 
-            T elm = this.contextualizer_.contextualize(ExecutionContext.copyOf(ctx, compMap));
+            T elm = this.contextualizer_.contextualize(ExecutionContext.copyOf((ExecutionContext<S>) ctx, compMap));
             list.add(elm);
         }
 
