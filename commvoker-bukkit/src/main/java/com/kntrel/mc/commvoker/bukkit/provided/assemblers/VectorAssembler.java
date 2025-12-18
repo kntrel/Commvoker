@@ -31,7 +31,7 @@ public class VectorAssembler implements ComposedAssembler<CommandSender, Vector>
         hooK.hook("vecArg", Assembler.ofArgumentType(Vec3Argument.vec3()));
     }
     @Override
-    public Vector contextualize(ExecutionContext<? extends CommandSender> ctx) {
+    public Vector assemble(ExecutionContext<? extends CommandSender> ctx) {
         Coordinates coordinates = ctx.component("vecArg", Coordinates.class);
         Vec3 vec3 = coordinates.getPosition((CommandSourceStack) CraftBukkitAccessors.getCommandSourceStack(ctx.source()));
 

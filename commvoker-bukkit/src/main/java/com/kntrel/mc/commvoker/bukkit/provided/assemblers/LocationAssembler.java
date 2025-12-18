@@ -52,7 +52,7 @@ public class LocationAssembler implements ComposedAssembler<CommandSender, Locat
     }
 
     @Override
-    public Location contextualize(ExecutionContext<? extends CommandSender> ctx) {
+    public Location assemble(ExecutionContext<? extends CommandSender> ctx) {
         CommandSender sender = ctx.source();
 
         Vector v = ctx.component("vecArg", Vector.class);
