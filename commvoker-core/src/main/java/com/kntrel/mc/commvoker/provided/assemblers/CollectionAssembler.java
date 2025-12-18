@@ -7,7 +7,6 @@ import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.assembler.CompiledAssembler;
 import com.kntrel.mc.commvoker.assembler.EndAssembler;
-import com.mojang.brigadier.context.CommandContext;
 import java.util.*;
 import java.util.function.Function;
 
@@ -107,10 +106,10 @@ public class CollectionAssembler<S, T, C extends Collection<T>> implements EndAs
     }
 
     @Override @SuppressWarnings("unchecked")
-    public C contextualize(ExecutionContext<? extends S> ctx) {
+    public C assemble(ExecutionContext<? extends S> ctx) {
         List<T> list = new ArrayList<>(this.max_);
         outer : for (int i = 0; i < this.max_; i++) {
-            Map<String, Component<S>> compMap = new HashMap<>();
+            Map<String, Component<? super S>> compMap = new HashMap<>();
             for (Map.Entry<String, String> entry : this.delegates_[i].namesMap().entrySet()) {
                 Component<S> comp = (Component<S>) ctx.componentDescriptor(entry.getValue());
                 if (comp == null) { continue outer; }

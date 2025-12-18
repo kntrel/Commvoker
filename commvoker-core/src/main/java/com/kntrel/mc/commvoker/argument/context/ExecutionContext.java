@@ -9,7 +9,7 @@ import java.util.Map;
 public class ExecutionContext<S> extends ParameterContext {
 
     //FACTORY
-    public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, Map<String, Component<S>> components) {
+    public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, Map<String, Component<? super S>> components) {
         return new ExecutionContext<>(original, original.commandContext(), components, original.previousArgumentDescriptors(), original.bag_);
     }
     public static <S> ExecutionContext<S> copyOf(ExecutionContext<S> original, List<InstancedArgumentDescriptor<S, ?>> previous) {
@@ -20,7 +20,7 @@ public class ExecutionContext<S> extends ParameterContext {
 
     //FIELDS
     private final CommandContext<? extends S> commandContext_;
-    private final Map<String, Component<S>> components_;
+    private final Map<String, Component<? super S>> components_;
     private final List<InstancedArgumentDescriptor<S, ?>> previous_;
     private final Map<String, Object> bag_;
     
@@ -29,7 +29,7 @@ public class ExecutionContext<S> extends ParameterContext {
     public ExecutionContext(
             ParameterContext context,
             CommandContext<? extends S> commandContext,
-            Map<String, Component<S>> components,
+            Map<String, Component<? super S>> components,
             List<InstancedArgumentDescriptor<S, ?>> previous,
             Map<String, Object> bag
     ) {
@@ -48,7 +48,7 @@ public class ExecutionContext<S> extends ParameterContext {
     
     //COMPONENTS
     public <T> T component(String key, Class<T> type) {
-        Component<S> comp = this.components_.get(key);
+        Component<? super S> comp = this.components_.get(key);
         if (comp == null) { return null; }
         Object o = comp.value();
         if (o == null) { return null; }
@@ -58,15 +58,18 @@ public class ExecutionContext<S> extends ParameterContext {
         return type.cast(o);
     }
     public Object component(String key) {
-        Component<S> comp = this.components_.get(key);
+        Component<? super S> comp = this.components_.get(key);
         if (comp == null) { return null; }
         return comp.value();
     }
-    public Component<S> componentDescriptor(String key) {
+    public Component<? super S> componentDescriptor(String key) {
         return this.components_.get(key);
     }
     public boolean hasComponent(String key) {
         return this.components_.containsKey(key);
+    }
+    public List<Component<? super S>> components() {
+        return this.components_.values().stream().sorted().toList();
     }
 
 

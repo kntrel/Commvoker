@@ -11,7 +11,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
 
     Assembler<? super S, ? extends I> delegate();
 
-    T compose(ExecutionContext<? extends S> ctx, I object);
+    T compose(ExecutionContext<? extends S> ctx, I object) throws AssemblyException;
 
     default boolean suggests() {
         return Utils.hasMethod(this.getClass(), "suggest", ExecutionContext.class, SuggestionsBuilder.class);
@@ -29,7 +29,7 @@ public interface TransformAssembler<S, I, T> extends ComposedAssembler<S, T>, Su
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(ExecutionContext<? extends S> ctx) {
+    default T assemble(ExecutionContext<? extends S> ctx) throws AssemblyException {
         return this.compose(ctx, (I) ctx.component("dep"));
     }
 }

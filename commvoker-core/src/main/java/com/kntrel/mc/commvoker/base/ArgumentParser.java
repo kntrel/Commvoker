@@ -42,7 +42,7 @@ class ArgumentParser<S> {
 
     //UTIL
     InstancedArgumentDescriptor<S, ?> parse(CommandContext<? extends S> ctx, List<InstancedArgumentDescriptor<S, ?>> previous, Map<String, Object> bag) {
-        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<>(this.parameterContext_, ctx, this.components(ctx), previous, bag));
+        Object val = this.descriptor_.contextualizer().contextualize(new ExecutionContext<S>(this.parameterContext_, ctx, this.components(ctx), previous, bag));
         return InstancedArgumentDescriptor.of((ArgumentDescriptor<S, Object>) this.descriptor_, val);
     }
 
@@ -60,8 +60,8 @@ class ArgumentParser<S> {
         return true;
     }
 
-    Map<String, Component<S>> components(CommandContext<?> ctx) {
-        Map<String, Component<S>> compMap = new HashMap<>();
+    Map<String, Component<? super S>> components(CommandContext<?> ctx) {
+        Map<String, Component<? super S>> compMap = new HashMap<>();
         Map<String, ParsedCommandNode<S>> nodesMap = ctx.getNodes().stream()
                 .collect(HashMap::new, (m, n) -> m.put(n.getNode().getName(), (ParsedCommandNode<S>) n), HashMap::putAll);
 

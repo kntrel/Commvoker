@@ -45,7 +45,7 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
             descriptors.add(desc);
         }
 
-        Map<String, Component<S>> compMap = (lastParser != null) ? lastParser.components(context) : Collections.emptyMap();
+        Map<String, Component<? super S>> compMap = (lastParser != null) ? lastParser.components(context) : Collections.emptyMap();
         ExecutionContext<S> execCtx = new ExecutionContext<>(lastParser.parameterContext(), context, compMap, descriptors, bag);
         return this.suggester_.suggest(execCtx, builder);
     }

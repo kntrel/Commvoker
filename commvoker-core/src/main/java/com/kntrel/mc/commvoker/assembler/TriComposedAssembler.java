@@ -12,7 +12,7 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     Assembler<? super S, ? extends B> secondDelegate();
     Assembler<? super S, ? extends C> thirdDelegate();
 
-    T compose(ExecutionContext<? extends S> ctx, A first, B second, C third);
+    T compose(ExecutionContext<? extends S> ctx, A first, B second, C third) throws AssemblyException;
 
     default CompletableFuture<Suggestions> firstSuggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder suggestionsBuilder) {
         return new CompletableFuture<>();
@@ -62,7 +62,7 @@ public interface TriComposedAssembler<S, A, B, C, T> extends ComposedAssembler<S
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(ExecutionContext<? extends S> ctx) {
+    default T assemble(ExecutionContext<? extends S> ctx) throws AssemblyException {
         return this.compose(ctx, (A) ctx.component("dep1"), (B) ctx.component("dep2"), (C) ctx.component("dep3"));
     }
 

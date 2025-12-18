@@ -11,6 +11,7 @@ import com.kntrel.mc.commvoker.command.CommandPatternToken;
 import com.kntrel.mc.commvoker.exception.BadCommandClassException;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
+import com.kntrel.mc.commvoker.provided.exceptionHandler.AssemblerExceptionHandler;
 import com.kntrel.mc.commvoker.requirement.AnnotatedRequirement;
 import com.kntrel.mc.commvoker.requirement.Requirement;
 import com.kntrel.mc.commvoker.requirement.Requires;
@@ -52,6 +53,7 @@ public abstract class BaseCommvoker<S> {
         this.callbackManager_ = new CallbackManager<>();
 
         ArgumentBindings.all().forEach(this.argumentResolver_::register);
+        this.exceptionResolver_.registerHandler(new AssemblerExceptionHandler());
     }
 
 

@@ -3,7 +3,6 @@ package com.kntrel.mc.commvoker.assembler;
 import com.kntrel.mc.commvoker.argument.Component;
 import com.kntrel.mc.commvoker.argument.binding.*;
 import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
-import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -42,7 +41,7 @@ public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumen
     //CONTRACT
     protected abstract CommandTemplate<S> template(Map<String, AtomicInteger> argCount);
     protected abstract Assembler<S, T> assembler();
-    protected abstract Component<S> contextualizeComponent(String key, ExecutionContext<? extends S> ctx);
+    protected abstract Component<S> assembleComponent(String key, ExecutionContext<? extends S> ctx) throws AssemblerException;
 
 
     //IMPLEMENTATION
@@ -60,7 +59,7 @@ public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumen
     }
     @Override @SuppressWarnings("unchecked")
     public T contextualize(ExecutionContext<? extends S> ctx) {
-        return (T) this.contextualizeComponent("", ctx).value();
+        return (T) this.assembleComponent("", ctx).value();
     }
 
     /* ---------------------------------------------------- COMPOSED ---------------------------------------------------- */
@@ -91,13 +90,17 @@ public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumen
         }
 
         @Override @SuppressWarnings("unchecked")
-        protected Component<S> contextualizeComponent(String key, ExecutionContext<? extends S> ctx) {
-            Map<String, Component<S>> compMap = this.children_.entrySet().stream().collect(Collectors.toMap(
+        protected Component<S> assembleComponent(String key, ExecutionContext<? extends S> ctx) throws AssemblerException {
+            Map<String, Component<? super S>> compMap = this.children_.entrySet().stream().collect(Collectors.toMap(
                     Map.Entry::getKey,
-                    e -> (Component<S>) e.getValue().contextualizeComponent(e.getKey(), ctx)
+                    e -> e.getValue().assembleComponent(e.getKey(), ctx)
             ));
-            T val = this.assembler_.contextualize(ExecutionContext.copyOf((ExecutionContext<S>) ctx, compMap));
-            return Component.of(key, val, compMap.values());
+            try {
+                T val = this.assembler_.assemble(ExecutionContext.copyOf((ExecutionContext<S>) ctx, compMap));
+                return Component.of(key, val, compMap.values());
+            } catch (AssemblyException e) {
+                throw AssemblerException.from(e, this.assembler_, ctx);
+            }
         }
 
         @Override @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -215,15 +218,19 @@ public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumen
         }
 
         @Override @SuppressWarnings("unchecked")
-        public Component<S> contextualizeComponent(String key, ExecutionContext<? extends S> ctx) {
-            Map<String, Component<S>> compMap = this.argMap_.entrySet().stream()
+        public Component<S> assembleComponent(String key, ExecutionContext<? extends S> ctx) throws AssemblerException {
+            Map<String, Component<? super S>> compMap = this.argMap_.entrySet().stream()
                     .filter(e -> ctx.hasComponent(e.getValue()))
                     .collect(Collectors.toMap(
                             Map.Entry::getKey,
-                            e -> (Component<S>) ctx.componentDescriptor(e.getValue())
+                            e -> (Component<? super S>) ctx.componentDescriptor(e.getValue())
                     ));
-            T val = this.assembler_.contextualize(ExecutionContext.copyOf((ExecutionContext<S>) ctx, compMap));
-            return Component.of(key, val, compMap.values());
+            try {
+                T val = this.assembler_.assemble(ExecutionContext.copyOf((ExecutionContext<S>) ctx, compMap));
+                return Component.of(key, val, compMap.values());
+            } catch (AssemblyException e) {
+                throw AssemblerException.from(e, this.assembler_, ctx);
+            }
         }
     }
 
@@ -242,13 +249,13 @@ public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumen
         //IMPLEMENTATION
         @Override @SuppressWarnings("unchecked")
         public CompletableFuture<Suggestions> suggest(ExecutionContext<? extends S> ctx, SuggestionsBuilder builder) {
-            Map<String, Component<S>> compMap = new HashMap<>();
+            Map<String, Component<? super S>> compMap = new HashMap<>();
 
             for (var e : this.children_.entrySet()) {
                 CompiledAssembler<? super S, ?> child = e.getValue();
                 Component<S> comp;
                 try {
-                    comp = (Component<S>) child.contextualizeComponent(e.getKey(), ctx);
+                    comp = (Component<S>) child.assembleComponent(e.getKey(), ctx);
                 } catch (Throwable ignored) { continue; }
                 if (comp != null) { compMap.put(e.getKey(), comp); }
             }

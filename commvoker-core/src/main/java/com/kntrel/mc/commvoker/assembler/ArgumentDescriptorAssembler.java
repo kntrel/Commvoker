@@ -34,7 +34,7 @@ public class ArgumentDescriptorAssembler<S, T> implements EndAssembler<S, T> {
         return this.template_;
     }
     @Override
-    public T contextualize(ExecutionContext<? extends S> context) {
+    public T assemble(ExecutionContext<? extends S> context) {
         return this.contextualizer_.contextualize(context);
     }
 }
