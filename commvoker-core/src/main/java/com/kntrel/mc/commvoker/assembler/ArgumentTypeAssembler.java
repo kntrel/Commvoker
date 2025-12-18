@@ -14,7 +14,7 @@ public interface ArgumentTypeAssembler<T> extends EndAssembler<Object, T> {
     }
 
     @Override @SuppressWarnings("unchecked")
-    default T contextualize(ExecutionContext<?> ctx) {
+    default T assemble(ExecutionContext<?> ctx) {
         return (T) ctx.component("arg");
     }
 }
