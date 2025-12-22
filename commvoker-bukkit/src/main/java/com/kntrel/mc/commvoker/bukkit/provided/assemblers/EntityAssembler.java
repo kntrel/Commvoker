@@ -120,7 +120,7 @@ public class EntityAssembler<E extends Entity> implements ComposedAssembler<Comm
     }
 
     @Override @SuppressWarnings("unchecked")
-    public List<E> contextualize(ExecutionContext<? extends CommandSender> ctx) {
+    public List<E> assemble(ExecutionContext<? extends CommandSender> ctx) {
         CommandSender sender = ctx.source();
 
         EntitySelector selector = ctx.component("entityArg", EntitySelector.class);

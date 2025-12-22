@@ -35,7 +35,7 @@ public class WorldAssembler implements ComposedAssembler<CommandSender, World> {
         hooK.hook("worldArg", StringAssembler.word()).suggests(this::suggest);
     }
     @Override
-    public World contextualize(ExecutionContext<? extends CommandSender> ctx) {
+    public World assemble(ExecutionContext<? extends CommandSender> ctx) {
         return ctx.source().getServer().getWorld(ctx.component("worldArg", String.class));
     }
 }
