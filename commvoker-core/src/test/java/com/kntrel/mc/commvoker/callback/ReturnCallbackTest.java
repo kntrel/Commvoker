@@ -200,4 +200,32 @@ public class ReturnCallbackTest {
         assertDoesNotThrow(() -> this.commvoker.execute("no-return", SRC));
         assertNull(this.text);
     }
+
+    @Test void typeCallbackLinkingWorks() {
+        this.text = null;
+        this.number = 0;
+        this.list = null;
+
+        this.commvoker = new MockCommvoker();
+        this.commvoker.registerCallback(new StringReturnCallback());
+        this.commvoker.registerCallback(new IntegerReturnCallback());
+        this.commvoker.registerCallback(new ListReturnCallback());
+        this.commvoker.register(new Holder());
+
+        assertDoesNotThrow(() -> this.commvoker.execute("greet", SRC));
+        assertEquals("Hello, World!", this.text);
+        assertEquals(0, this.number);
+        assertNull(this.list);
+
+        assertDoesNotThrow(() -> this.commvoker.execute("add 10 15", SRC));
+        assertEquals("Hello, World!", this.text);
+        assertEquals(25, this.number);
+        assertNull(this.list);
+
+        assertDoesNotThrow(() -> this.commvoker.execute("list-numbers", SRC));
+        assertEquals("Hello, World!", this.text);
+        assertEquals(25, this.number);
+        assertEquals(List.of(1, 2, 3, 4, 5), this.list);
+
+    }
 }
