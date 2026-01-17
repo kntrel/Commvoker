@@ -3,6 +3,7 @@ package com.kntrel.mc.commvoker.base;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.NameSupplier;
 import com.kntrel.mc.commvoker.argument.binding.Suggester;
+import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.*;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
@@ -40,7 +41,7 @@ final class ArgumentDescriptorCompiler<S> {
 
 
     //UTILITY
-    <T> CompiledArgumentDescriptor<? super S, T> compile(TypedArgumentDescriptor<? super S, T> descriptor, NameSupplier nameSupplier, Command<S> command) {
+    <T> CompiledArgumentDescriptor<? super S, T> compile(TypedArgumentDescriptor<? super S, T> descriptor, NameSupplier nameSupplier, Command<S> command, ParameterContext paramContext) {
         Objects.requireNonNull(descriptor, "argument descriptor");
         CommandTemplate<? super S> tmp = descriptor.template();
         CompileScope<S> scope = new CompileScope<>(
@@ -54,15 +55,15 @@ final class ArgumentDescriptorCompiler<S> {
 
         // Pass 1: build nodes (children & targets first), wire redirects, return built roots
         List<CommandNode<S>> roots = tmp.trees().stream()
-                .map(n -> buildNode(n, command))
+                .map(n -> buildNode(n, command, paramContext))
                 .toList();
         CompiledArgumentDescriptor<S, T> compiled = CompiledArgumentDescriptor.of((TypedArgumentDescriptor<S, T>) descriptor, new CommandTreeGate<>(roots, scope.leaves()));
         roots.forEach(r -> this.descriptorMap_.put(r, compiled));
         this.threadLocal_.remove();
         return compiled;
     }
-    <T> CompiledArgumentDescriptor<? super S, T> compile(TypedArgumentDescriptor<? super S, T> descriptor, NameSupplier nameSupplier) {
-        return compile(descriptor, nameSupplier, null);
+    <T> CompiledArgumentDescriptor<? super S, T> compile(TypedArgumentDescriptor<? super S, T> descriptor, NameSupplier nameSupplier, ParameterContext paramContext) {
+        return compile(descriptor, nameSupplier, null, paramContext);
     }
 
 
@@ -94,7 +95,7 @@ final class ArgumentDescriptorCompiler<S> {
     }
 
     @SuppressWarnings("unchecked")
-    private CommandNode<S> buildNode(CommandTemplate.Node<? super S> node, Command<S> command) {
+    private CommandNode<S> buildNode(CommandTemplate.Node<? super S> node, Command<S> command, ParameterContext parameterContext) {
         CompileScope<S> scope = this.threadLocal_.get();
 
         // memoization
@@ -127,7 +128,7 @@ final class ArgumentDescriptorCompiler<S> {
 
         // Build normal children first (so we can attach CommandNode<S> instances)
         List<CommandNode<S>> builtChildren = children.stream()
-                .map(n -> buildNode(n, command))
+                .map(n -> buildNode(n, command, parameterContext))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         // Resolving forwards
@@ -146,7 +147,7 @@ final class ArgumentDescriptorCompiler<S> {
             if (scope.ancestors.contains(target)) {
                 throw new IllegalStateException("Forward from '" + node.label() + "' points to ancestor '" + target.label() + "'");
             }
-            builtChildren.add(buildNode(target, command));
+            builtChildren.add(buildNode(target, command, parameterContext));
         }
 
         RequirementNode<S> reqNode = new RequirementNode<>();
@@ -156,7 +157,7 @@ final class ArgumentDescriptorCompiler<S> {
 
         if (node instanceof CommandTemplate.Argument<? super S> arg) {
             Suggester<? extends S> sug = ((CommandTemplate.Argument<S>) arg).suggester();
-            if (sug != null) { ((RequiredArgumentBuilder<S, ?>) builder).suggests(new SuggesterBridge<>((Suggester<S>) sug, this.argumentParsers_)); }
+            if (sug != null) { ((RequiredArgumentBuilder<S, ?>) builder).suggests(new SuggesterBridge<>((Suggester<S>) sug, this.argumentParsers_, parameterContext)); }
         }
 
         if (command != null && isLeave) { builder.executes(command); }
