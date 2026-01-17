@@ -111,7 +111,7 @@ public abstract class BaseCommvoker<S> {
 
             CommandParser.Result<S> parsed;
             try {
-                parsed = this.commandParser_.brigadierCommand(tokens, m, src);
+                parsed = this.commandParser_.parse(tokens, m, src);
             } catch (BadCommandMethodException e) {
                 throw new BadCommandClassException(src, e);
             }
