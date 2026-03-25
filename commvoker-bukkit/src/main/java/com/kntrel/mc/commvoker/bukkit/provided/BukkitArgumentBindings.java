@@ -22,7 +22,6 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
 
