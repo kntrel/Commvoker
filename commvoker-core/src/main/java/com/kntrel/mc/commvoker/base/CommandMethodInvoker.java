@@ -36,6 +36,8 @@ class CommandMethodInvoker<S> implements Command<S> {
             throw new IllegalArgumentException("Method argument count isn't equal to ArgumentParser array length");
         }
 
+        method.getMethod().setAccessible(true);
+
         this.commandHolder_ = instance;
         this.method_ = method;
         this.argumentParsers_ = arguments;
