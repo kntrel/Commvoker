@@ -30,6 +30,6 @@ public class FloatAssembler implements ArgumentTypeAssembler<Float> {
 
     //IMPLEMENTATION
     @Override public ArgumentType<? extends Float> argumentType() {
-        return null;
+        return this.floatArgumentType_;
     }
 }
