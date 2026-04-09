@@ -13,7 +13,6 @@ import com.kntrel.mc.commvoker.error.CommandExceptionResolver;
 import com.kntrel.mc.commvoker.exception.BadCommandMethodException;
 import com.kntrel.mc.commvoker.exception.BadCommandTokenException;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.CommandNode;
 import java.lang.reflect.Method;
@@ -88,16 +87,16 @@ class CommandParser<S> {
     }
 
     @SuppressWarnings("unused")
-    public Result<S> brigadierCommand(String command, Method method, Object instance) throws BadCommandMethodException {
+    public Result<S> parse(String command, Method method, Object instance) throws BadCommandMethodException {
         try {
-            return this.brigadierCommand(this.tokenize(command), method, instance);
+            return this.parse(this.tokenize(command), method, instance);
         } catch (BadCommandTokenException e) {
             throw new BadCommandMethodException(method, e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    public Result<S> brigadierCommand(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
+    public Result<S> parse(CommandPatternToken[] patternTokens, Method method, Object instance) throws BadCommandMethodException {
          // Guard assertions
          if (patternTokens.length == 0) {
             throw new IllegalArgumentException("empty CommandToken array");
@@ -199,7 +198,7 @@ class CommandParser<S> {
             TypedArgumentDescriptor<? super S, ?> typedDescriptor = TypedArgumentDescriptor.of(descriptor, param.getParameterizedType());
             descriptors.add(typedDescriptor);
             NameSupplier nameSupplier = new NameSupplerImpl(t.label());
-            CompiledArgumentDescriptor<S, ?> compiled = (CompiledArgumentDescriptor<S, ?>) compiler.compile(typedDescriptor, nameSupplier, invoker);
+            CompiledArgumentDescriptor<S, ?> compiled = (CompiledArgumentDescriptor<S, ?>) compiler.compile(typedDescriptor, nameSupplier, invoker, argContext);
             upstream.forEach(n -> compiled.compiled().roots().forEach(n::addChild));
             upstream = compiled.compiled().leaves();
             argumentParsers[paramInfo.index()] = new ArgumentParser<>(nameSupplier.namesMap(), descriptor, argContext);

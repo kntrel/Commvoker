@@ -1,6 +1,7 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.argument.Component;
+import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.binding.CommandTemplate;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
@@ -20,12 +21,14 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
 
     private final Suggester<S> suggester_;
     private final ArgumentParser<S>[] parsers_;
+    private final ParameterContext parameterContext_;
 
 
     //CONSTRUCTOR
-    SuggesterBridge(Suggester<S> suggester, ArgumentParser<S>[] parsers) {
+    SuggesterBridge(Suggester<S> suggester, ArgumentParser<S>[] parsers, ParameterContext parameterContext) {
         this.suggester_ = suggester;
         this.parsers_ = parsers;
+        this.parameterContext_ = parameterContext;
     }
 
 
@@ -46,7 +49,7 @@ class SuggesterBridge<S> implements SuggestionProvider<S> {
         }
 
         Map<String, Component<? super S>> compMap = (lastParser != null) ? lastParser.components(context) : Collections.emptyMap();
-        ExecutionContext<S> execCtx = new ExecutionContext<>(lastParser.parameterContext(), context, compMap, descriptors, bag);
+        ExecutionContext<S> execCtx = new ExecutionContext<>(this.parameterContext_, context, compMap, descriptors, bag);
         return this.suggester_.suggest(execCtx, builder);
     }
 

@@ -183,7 +183,7 @@ public class CommandParserParseTest {
         Command ann = getAnnotation(m);
         var tokens = assertValidTokens(ann.value());
 
-        BadCommandMethodException ex = assertThrows(BadCommandMethodException.class, () -> this.parser.brigadierCommand(tokens, m, this));
+        BadCommandMethodException ex = assertThrows(BadCommandMethodException.class, () -> this.parser.parse(tokens, m, this));
         assertEquals(ex.getMethod(), m);
 
         reporter.publishEntry(ex.getMessage());
@@ -288,7 +288,7 @@ public class CommandParserParseTest {
         Method m = getMethod(name, args);
         Command annotation = getAnnotation(m);
         var tokens = assertValidTokens(annotation.value());
-        LiteralArgumentBuilder<?> tree = assertDoesNotThrow(() -> parser.brigadierCommand(tokens, m, this).tree());
+        LiteralArgumentBuilder<?> tree = assertDoesNotThrow(() -> parser.parse(tokens, m, this).tree());
         return tree.build();
     }
 }
