@@ -129,8 +129,8 @@ class CommandMethodInvoker<S> implements Command<S> {
             }
         }
 
-        if (Number.class.isAssignableFrom(this.method_.getReturnType())) {
-            return (int) returned;
+        if (returned instanceof Number number) {
+            return number.intValue();
         }
 
         return 0;
