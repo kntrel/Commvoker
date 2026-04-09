@@ -8,7 +8,26 @@
     <artifactId>commvoker</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>commvoker-parent</name>
+    <name>Commvoker Parent</name>
+    <description>Parent build for the Commvoker command framework and its Minecraft platform integrations.</description>
+    <url>https://github.com/kntrel/Commvoker</url>
+    <inceptionYear>2025</inceptionYear>
+
+    <developers>
+        <developer>
+            <id>kntrel</id>
+            <name>kntrel</name>
+            <email>me@kntrel.com</email>
+            <url>https://github.com/kntrel</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:ssh://git@github.com/kntrel/Commvoker.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/kntrel/Commvoker.git</developerConnection>
+        <url>https://github.com/kntrel/Commvoker</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <modules>
         <module>commvoker-core</module>
@@ -18,24 +37,47 @@
 
 
     <properties>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.parameters>true</maven.compiler.parameters>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+        <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.11.2</maven.javadoc.plugin.version>
+        <junit.jupiter.version>5.11.0</junit.jupiter.version>
     </properties>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.compiler.plugin.version}</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                        </compilerArgs>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven.source.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven.javadoc.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <source>25</source>
-                    <target>25</target>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                    </compilerArgs>
-                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -44,7 +86,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.11.0</version>
+            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
