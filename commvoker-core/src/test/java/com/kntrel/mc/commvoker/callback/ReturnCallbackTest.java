@@ -15,7 +15,7 @@ public class ReturnCallbackTest {
 
     //HOLDER
     private static final Object SRC = new Object();
-    public class Holder {
+    public static class Holder {
 
         @Command
         public String greet() {
@@ -63,7 +63,7 @@ public class ReturnCallbackTest {
 
 
     //CALLBACKS
-    private final class StringReturnCallback implements ReturnCallback<Object, String> {
+    private class StringReturnCallback implements ReturnCallback<Object, String> {
 
         @Override
         public void onReturn(CommandMethodContext<?> context, String returnValue) {
@@ -96,6 +96,15 @@ public class ReturnCallbackTest {
         @Override
         public void onReturn(CommandMethodContext<?> context, List<Person> returnValue) {
             ReturnCallbackTest.this.personList = returnValue;
+        }
+    }
+    private class ExtendedStringReturnCallback extends StringReturnCallback {}
+    private interface StringCallBackInterface extends ReturnCallback<Object, String> {}
+    private class InterfaceStringReturnCallback implements StringCallBackInterface {
+
+        @Override
+        public void onReturn(CommandMethodContext<?> context, String returnValue) {
+            ReturnCallbackTest.this.text = returnValue;
         }
     }
 
@@ -227,5 +236,23 @@ public class ReturnCallbackTest {
         assertEquals(25, this.number);
         assertEquals(List.of(1, 2, 3, 4, 5), this.list);
 
+    }
+
+    @Test void extendedCallbackClassWorks() {
+        this.text = null;
+
+        this.commvoker.registerCallback(new ExtendedStringReturnCallback());
+
+        assertDoesNotThrow(() -> this.commvoker.execute("greet", SRC));
+        assertEquals("Hello, World!", this.text);
+    }
+
+    @Test void extendedInterfaceCallbackWorks() {
+        this.text = null;
+
+        this.commvoker.registerCallback(new InterfaceStringReturnCallback());
+
+        assertDoesNotThrow(() -> this.commvoker.execute("greet", SRC));
+        assertEquals("Hello, World!", this.text);
     }
 }

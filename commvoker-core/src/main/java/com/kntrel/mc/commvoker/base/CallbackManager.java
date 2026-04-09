@@ -1,11 +1,10 @@
 package com.kntrel.mc.commvoker.base;
 
 import com.kntrel.mc.commvoker.callback.ReturnCallback;
-import com.kntrel.mc.commvoker.command.CommandMethodContext;
 import com.kntrel.util.TypeUtils;
-import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.*;
 
 class CallbackManager<S> {
@@ -82,16 +81,71 @@ class CallbackManager<S> {
 
     //HELPERS
     private static Type getCallbackType(ReturnCallback<?, ?> callback) {
-        Method method = Arrays.stream(callback.getClass().getMethods())
-                .filter(m -> m.getName().equals("onReturn"))
-                .filter(m -> m.getParameterCount() == 2)
-                .filter(m -> m.getParameterTypes()[0].equals(CommandMethodContext.class))
-                .findFirst().orElse(null);
+        Class<?> cls = callback.getClass();
 
-        if (method == null) {
-            throw new RuntimeException("No suitable onReturn method found in callback class " + callback.getClass().getName());
+        Type found = resolveReturnCallback(cls, new HashMap<>());
+        if (found != null) { return found; }
+
+        throw new RuntimeException("Cannot resolve ReturnCallback generic type for " + cls.getName());
+    }
+
+    private static Type resolveReturnCallback(Type type, Map<TypeVariable<?>, Type> subst) {
+        if (type instanceof Class<?> c) {
+            // interfaces
+            for (Type it : c.getGenericInterfaces()) {
+                Type t = resolveReturnCallback(it, subst);
+                if (t != null) { return t; }
+            }
+            // superclass
+            Type sup = c.getGenericSuperclass();
+            if (sup != null) { return resolveReturnCallback(sup, subst); }
+            return null;
         }
 
-        return method.getGenericParameterTypes()[1];
+        if (type instanceof ParameterizedType pt) {
+            Type rawT = pt.getRawType();
+            if (!(rawT instanceof Class<?> raw)) { return null; }
+
+            // extend substitution map with this PT's args
+            Map<TypeVariable<?>, Type> next = new HashMap<>(subst);
+            TypeVariable<?>[] params = raw.getTypeParameters();
+            Type[] actuals = pt.getActualTypeArguments();
+            for (int i = 0; i < params.length && i < actuals.length; i++) {
+                next.put(params[i], apply(next, actuals[i]));
+            }
+
+            // if this is ReturnCallback<S,T>, return T (after substitution)
+            if (raw.equals(ReturnCallback.class)) {
+                Type tArg = pt.getActualTypeArguments()[1];
+                return apply(next, tArg);
+            }
+
+            // otherwise, keep walking: raw's super-interfaces and superclass
+            for (Type it : raw.getGenericInterfaces()) {
+                Type t = resolveReturnCallback(apply(next, it), next);
+                if (t != null) return t;
+            }
+            Type sup = raw.getGenericSuperclass();
+            if (sup != null) return resolveReturnCallback(apply(next, sup), next);
+
+            return null;
+        }
+
+        return null;
+    }
+
+    // Reuse your TypeUtils.apply() if you want; included minimal version here:
+    private static Type apply(Map<TypeVariable<?>, Type> map, Type t) {
+        if (t instanceof TypeVariable<?> tv) {
+            Type r = map.get(tv);
+            return (r == null) ? tv : apply(map, r);
+        }
+        if (t instanceof ParameterizedType pt) {
+            Type[] args = pt.getActualTypeArguments();
+            Type[] na = new Type[args.length];
+            for (int i = 0; i < args.length; i++) na[i] = apply(map, args[i]);
+            return new TypeUtils.SimplePT((Class<?>) pt.getRawType(), na, pt.getOwnerType());
+        }
+        return t;
     }
 }

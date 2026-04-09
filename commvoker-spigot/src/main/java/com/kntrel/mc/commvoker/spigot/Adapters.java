@@ -19,7 +19,6 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
 import net.minecraft.commands.CommandSourceStack;
 import org.bukkit.command.CommandSender;
-
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Predicate;

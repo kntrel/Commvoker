@@ -272,9 +272,9 @@ public final class TypeUtils {
 
     /* Tiny implementations to create Types at runtime */
 
-    private static final class SimplePT implements ParameterizedType {
+    public static final class SimplePT implements ParameterizedType {
         private final Class<?> raw; private final Type[] args; private final Type owner;
-        SimplePT(Class<?> raw, Type[] args, Type owner) { this.raw = raw; this.args = args.clone(); this.owner = owner; }
+        public SimplePT(Class<?> raw, Type[] args, Type owner) { this.raw = raw; this.args = args.clone(); this.owner = owner; }
         @Override public Type[] getActualTypeArguments() { return args.clone(); }
         @Override public Type getRawType() { return raw; }
         @Override public Type getOwnerType() { return owner; }
