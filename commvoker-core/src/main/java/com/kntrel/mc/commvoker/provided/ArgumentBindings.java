@@ -24,17 +24,29 @@ public final class ArgumentBindings {
     private ArgumentBindings() {
     }
 
-    private static final Set<Class<?>> PRIMITIVES = Set.of(boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class);
+    private static final Set<Class<?>> PRIMITIVES = Set.of(boolean.class, byte.class, short.class, int.class, long.class, float.class, double.class, char.class);
 
     private static Class<?> boxed(Class<?> primitive) {
         if (primitive.equals(boolean.class)) {
             return Boolean.class;
         }
-        if (primitive.equals(float.class) || primitive.equals(double.class)) {
+        if (primitive.equals(float.class)) {
+            return Float.class;
+        }
+        if (primitive.equals(double.class)) {
             return Double.class;
+        }
+        if (primitive.equals(char.class)) {
+            return Character.class;
         }
         if (primitive.equals(long.class)) {
             return Long.class;
+        }
+        if (primitive.equals(byte.class)) {
+            return Byte.class;
+        }
+        if (primitive.equals(short.class)) {
+            return Short.class;
         }
         return Integer.class;
     }
@@ -79,6 +91,14 @@ public final class ArgumentBindings {
             .toClass(Integer.class)
             .withPriority(Priority.LOW)
             .bind(),
+        BYTE = argumentAssembler(ByteAssembler::byteArg)
+            .toClass(Byte.class)
+            .withPriority(Priority.LOW)
+            .bind(),
+        SHORT = argumentAssembler(ShortAssembler::shortArg)
+            .toClass(Short.class)
+            .withPriority(Priority.LOW)
+            .bind(),
         LONG = argumentAssembler(ctx -> rangeNumber(
                 LongAssembler::longArg,
                 Double::longValue,
@@ -99,8 +119,22 @@ public final class ArgumentBindings {
             .toClass(Double.class)
             .withPriority(Priority.LOW)
             .bind(),
+        FLOAT = argumentAssembler(ctx -> rangeNumber(
+                FloatAssembler::floatArg,
+                Double::floatValue,
+                Float.MIN_VALUE,
+                Float.MAX_VALUE,
+                ctx
+            ))
+            .toClass(Float.class)
+            .withPriority(Priority.LOW)
+            .bind(),
         BOOLEAN = argumentAssembler(BoolAssembler::bool)
             .toClass(Boolean.class)
+            .withPriority(Priority.LOW)
+            .bind(),
+        CHARACTER = argumentAssembler(CharacterAssembler::character)
+            .toClass(Character.class)
             .withPriority(Priority.LOW)
             .bind(),
         PRIMITIVE = argumentAssembler(ctx -> {
