@@ -1,7 +1,8 @@
 package com.kntrel.util.tuple;
 
-import com.kntrel.util.tuple.impl.SimplePair;
-
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public interface Pair<A, B> {
 
     static <A, B> Pair<A, B> of(A first, B second) {

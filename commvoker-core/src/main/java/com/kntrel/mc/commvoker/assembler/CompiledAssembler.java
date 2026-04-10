@@ -12,6 +12,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public sealed abstract class CompiledAssembler<S, T> implements TemplatedArgumentDescriptor<S, T>, Contextualizer<S, T> {
 
     //FACTORY

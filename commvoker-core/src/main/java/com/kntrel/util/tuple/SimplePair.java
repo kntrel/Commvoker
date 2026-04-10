@@ -1,9 +1,7 @@
-package com.kntrel.util.tuple.impl;
-
-import com.kntrel.util.tuple.Pair;
+package com.kntrel.util.tuple;
 import java.util.Objects;
 
-public class SimplePair<A, B> implements Pair<A, B> {
+class SimplePair<A, B> implements Pair<A, B> {
 
     private final A first_;
     private final B second_;

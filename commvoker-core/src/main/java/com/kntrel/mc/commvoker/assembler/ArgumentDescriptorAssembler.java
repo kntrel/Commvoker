@@ -5,7 +5,7 @@ import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 
-public class ArgumentDescriptorAssembler<S, T> implements EndAssembler<S, T> {
+class ArgumentDescriptorAssembler<S, T> implements EndAssembler<S, T> {
 
     //FACTORY
     public static <S, T> ArgumentDescriptorAssembler<S, T> argumentDescriptor(ArgumentDescriptor<S, T> descriptor) {

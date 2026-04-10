@@ -7,7 +7,6 @@ import com.kntrel.mc.commvoker.provided.annotations.Min;
 import com.kntrel.mc.commvoker.provided.annotations.NotGreedy;
 import com.kntrel.mc.commvoker.provided.annotations.Word;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
-import com.kntrel.mc.commvoker.assembler.ArgumentDescriptorAssembler;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.provided.assemblers.*;
@@ -20,6 +19,9 @@ import java.util.function.Function;
 
 import static com.kntrel.mc.commvoker.argument.binder.ArgumentBinder.*;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public final class ArgumentBindings {
     private ArgumentBindings() {
     }
@@ -139,7 +141,7 @@ public final class ArgumentBindings {
             .bind(),
         PRIMITIVE = argumentAssembler(ctx -> {
                 ArgumentDescriptor<Object, ?> descriptor = (ArgumentDescriptor<Object, ?>) ctx.resolve(boxed((Class<?>) ctx.type()));
-                return ArgumentDescriptorAssembler.argumentDescriptor(descriptor);
+                return Assembler.ofArgumentDescriptor(descriptor);
             })
             .toCondition(ctx -> ctx.type() instanceof Class<?> c && PRIMITIVES.contains(c))
             .withPriority(Priority.LOW)

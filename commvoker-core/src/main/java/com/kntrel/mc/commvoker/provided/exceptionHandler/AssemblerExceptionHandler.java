@@ -9,6 +9,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class AssemblerExceptionHandler implements CommandExceptionHandler<AssemblerException> {
 
     private static final DynamicCommandExceptionType TYPE = new DynamicCommandExceptionType(o -> (Message) o);

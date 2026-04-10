@@ -5,6 +5,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class CommandDefinition implements Iterable<CommandToken> {
 
     private final CommandToken[] tokens_;

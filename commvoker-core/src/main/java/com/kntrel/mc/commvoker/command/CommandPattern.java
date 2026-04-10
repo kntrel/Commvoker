@@ -3,6 +3,9 @@ package com.kntrel.mc.commvoker.command;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class CommandPattern implements Iterable<CommandPatternToken> {
 
     private final CommandPatternToken[] tokens_;

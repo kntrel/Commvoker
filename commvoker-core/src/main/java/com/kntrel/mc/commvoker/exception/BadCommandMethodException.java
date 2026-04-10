@@ -2,6 +2,9 @@ package com.kntrel.mc.commvoker.exception;
 
 import java.lang.reflect.Method;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class BadCommandMethodException extends Exception {
 
     private final Method method_;

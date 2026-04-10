@@ -6,6 +6,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class Multipredicate<T> implements Predicate<T> {
 
     @SafeVarargs

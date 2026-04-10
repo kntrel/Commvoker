@@ -3,6 +3,9 @@ package com.kntrel.util;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public final class Constants {
 
     private Constants() {}

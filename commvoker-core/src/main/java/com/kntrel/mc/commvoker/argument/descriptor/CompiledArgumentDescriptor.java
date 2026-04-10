@@ -5,6 +5,9 @@ import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import java.lang.reflect.Type;
 import java.util.function.Predicate;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public interface CompiledArgumentDescriptor<S, T> extends TypedArgumentDescriptor<S, T> {
 
     static <S, T> CompiledArgumentDescriptor<S, T> of(TypedArgumentDescriptor<S, T> descriptor, CommandTreeGate<S> gate) {

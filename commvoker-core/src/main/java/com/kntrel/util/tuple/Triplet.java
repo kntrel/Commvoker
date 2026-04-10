@@ -1,7 +1,8 @@
 package com.kntrel.util.tuple;
 
-import com.kntrel.util.tuple.impl.SimpleTriplet;
-
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public interface Triplet<A, B, C> extends Pair<A, B> {
 
     static <A, B, C> Triplet<A, B, C> of(A first, B second, C third) {

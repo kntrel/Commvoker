@@ -6,7 +6,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.function.Predicate;
 
-public class RequirementBridge<S> implements Predicate<S> {
+class RequirementBridge<S> implements Predicate<S> {
 
     //FIELDS
     private final AnnotatedRequirement<?, ?> requirement_;

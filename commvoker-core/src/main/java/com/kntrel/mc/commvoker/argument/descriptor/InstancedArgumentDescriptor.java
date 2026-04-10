@@ -3,6 +3,9 @@ package com.kntrel.mc.commvoker.argument.descriptor;
 import com.kntrel.mc.commvoker.argument.binding.Contextualizer;
 import java.util.function.Predicate;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public interface InstancedArgumentDescriptor<S, T> extends ArgumentDescriptor<S, T> {
 
     static <S, T> InstancedArgumentDescriptor<S, T> of(ArgumentDescriptor<S, T> delegate, T value) {

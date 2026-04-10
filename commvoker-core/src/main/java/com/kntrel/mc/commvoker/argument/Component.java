@@ -4,6 +4,9 @@ import com.mojang.brigadier.context.ParsedCommandNode;
 import com.mojang.brigadier.context.StringRange;
 import java.util.*;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public sealed interface Component<S> extends Comparable<Component<S>> {
 
     //FACTORY

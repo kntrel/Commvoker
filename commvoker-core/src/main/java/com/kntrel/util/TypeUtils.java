@@ -4,6 +4,9 @@ import java.lang.reflect.*;
 import java.util.*;
 
 /** Reflection utilities for checking "B safely extends A". */
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public final class TypeUtils {
 
     private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS = Map.of(

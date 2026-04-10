@@ -3,6 +3,9 @@ package com.kntrel.util;
 import java.util.*;
 import java.util.function.Supplier;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class SetMap<K, V> implements Map<K, Set<V>> {
 
     //CONSTANTS

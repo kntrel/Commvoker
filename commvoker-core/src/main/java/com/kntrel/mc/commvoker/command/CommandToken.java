@@ -2,6 +2,9 @@ package com.kntrel.mc.commvoker.command;
 
 import java.util.Objects;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class CommandToken implements Token {
 
     //ASSETS

@@ -4,6 +4,9 @@ import com.mojang.brigadier.tree.CommandNode;
 import java.util.*;
 import java.util.function.Consumer;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public record CommandTreeGate<S>(List<CommandNode<S>> roots, List<CommandNode<S>> leaves) {
 
     public static <S> CommandTreeGate<S> ofTree(CommandNode<S> root) {

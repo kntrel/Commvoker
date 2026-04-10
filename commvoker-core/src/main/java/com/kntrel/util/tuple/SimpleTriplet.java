@@ -1,9 +1,7 @@
-package com.kntrel.util.tuple.impl;
-
-import com.kntrel.util.tuple.Triplet;
+package com.kntrel.util.tuple;
 import java.util.Objects;
 
-public class SimpleTriplet<A, B, C> extends SimplePair<A, B> implements Triplet<A, B, C> {
+class SimpleTriplet<A, B, C> extends SimplePair<A, B> implements Triplet<A, B, C> {
 
     private final C third_;
 

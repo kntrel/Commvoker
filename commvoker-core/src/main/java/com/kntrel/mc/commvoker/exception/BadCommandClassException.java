@@ -1,5 +1,8 @@
 package com.kntrel.mc.commvoker.exception;
 
+/**
+ * Internal API. Public for framework wiring, but not part of the supported external API.
+ */
 public class BadCommandClassException extends RuntimeException {
 
     private final Object instance_;
