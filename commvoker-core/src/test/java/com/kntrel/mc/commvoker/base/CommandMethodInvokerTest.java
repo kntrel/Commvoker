@@ -73,6 +73,16 @@ class CommandMethodInvokerTest {
     }
 
     @Test
+    void negativePrimitiveFloatReturnBecomesCommandResult() {
+        assertEquals(-19, assertDoesNotThrow(() -> this.commvoker.execute("negative-primitive-float-return", SRC)));
+    }
+
+    @Test
+    void negativeBoxedFloatReturnBecomesCommandResult() {
+        assertEquals(-20, assertDoesNotThrow(() -> this.commvoker.execute("negative-boxed-float-return", SRC)));
+    }
+
+    @Test
     void primitiveDoubleReturnBecomesCommandResult() {
         assertEquals(21, assertDoesNotThrow(() -> this.commvoker.execute("primitive-double-return", SRC)));
     }
@@ -80,6 +90,16 @@ class CommandMethodInvokerTest {
     @Test
     void boxedDoubleReturnBecomesCommandResult() {
         assertEquals(22, assertDoesNotThrow(() -> this.commvoker.execute("boxed-double-return", SRC)));
+    }
+
+    @Test
+    void negativePrimitiveDoubleReturnBecomesCommandResult() {
+        assertEquals(-21, assertDoesNotThrow(() -> this.commvoker.execute("negative-primitive-double-return", SRC)));
+    }
+
+    @Test
+    void negativeBoxedDoubleReturnBecomesCommandResult() {
+        assertEquals(-22, assertDoesNotThrow(() -> this.commvoker.execute("negative-boxed-double-return", SRC)));
     }
 
 
@@ -135,6 +155,16 @@ class CommandMethodInvokerTest {
             return 20.9f;
         }
 
+        @Command("negative-primitive-float-return")
+        public float negativePrimitiveFloat() {
+            return -19.9f;
+        }
+
+        @Command("negative-boxed-float-return")
+        public Float negativeBoxedFloat() {
+            return -20.9f;
+        }
+
         @Command("primitive-double-return")
         public double primitiveDouble() {
             return 21.9d;
@@ -143,6 +173,16 @@ class CommandMethodInvokerTest {
         @Command("boxed-double-return")
         public Double boxedDouble() {
             return 22.9d;
+        }
+
+        @Command("negative-primitive-double-return")
+        public double negativePrimitiveDouble() {
+            return -21.9d;
+        }
+
+        @Command("negative-boxed-double-return")
+        public Double negativeBoxedDouble() {
+            return -22.9d;
         }
     }
 }

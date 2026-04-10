@@ -114,8 +114,8 @@ public final class ArgumentBindings {
         DOUBLE = argumentAssembler(ctx -> rangeNumber(
                 DoubleAssembler::doubleArg,
                 Function.identity(),
-                Double.MIN_VALUE,
-                Double.MAX_VALUE,
+                Double.NEGATIVE_INFINITY,
+                Double.POSITIVE_INFINITY,
                 ctx
             ))
             .toClass(Double.class)
@@ -124,8 +124,8 @@ public final class ArgumentBindings {
         FLOAT = argumentAssembler(ctx -> rangeNumber(
                 FloatAssembler::floatArg,
                 Double::floatValue,
-                Float.MIN_VALUE,
-                Float.MAX_VALUE,
+                Float.NEGATIVE_INFINITY,
+                Float.POSITIVE_INFINITY,
                 ctx
             ))
             .toClass(Float.class)

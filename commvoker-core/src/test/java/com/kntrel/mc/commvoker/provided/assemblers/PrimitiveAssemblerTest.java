@@ -100,6 +100,18 @@ public class PrimitiveAssemblerTest {
     }
 
     @Test
+    void negativePrimitiveFloatArgument() {
+        assertDoesNotThrow(() -> this.commvoker.execute("primitive-float -1.5", SRC));
+        assertEquals(-1.5f, this.primitiveHolder.floatValue, 0.0001f);
+    }
+
+    @Test
+    void negativeBoxedFloatArgument() {
+        assertDoesNotThrow(() -> this.commvoker.execute("boxed-float -2.5", SRC));
+        assertEquals(Float.valueOf(-2.5f), this.boxedHolder.floatValue);
+    }
+
+    @Test
     void primitiveDoubleArgument() {
         assertDoesNotThrow(() -> this.commvoker.execute("primitive-double 3.5", SRC));
         assertEquals(3.5d, this.primitiveHolder.doubleValue, 0.0001d);
@@ -109,6 +121,18 @@ public class PrimitiveAssemblerTest {
     void boxedDoubleArgument() {
         assertDoesNotThrow(() -> this.commvoker.execute("boxed-double 4.5", SRC));
         assertEquals(Double.valueOf(4.5d), this.boxedHolder.doubleValue);
+    }
+
+    @Test
+    void negativePrimitiveDoubleArgument() {
+        assertDoesNotThrow(() -> this.commvoker.execute("primitive-double -3.5", SRC));
+        assertEquals(-3.5d, this.primitiveHolder.doubleValue, 0.0001d);
+    }
+
+    @Test
+    void negativeBoxedDoubleArgument() {
+        assertDoesNotThrow(() -> this.commvoker.execute("boxed-double -4.5", SRC));
+        assertEquals(Double.valueOf(-4.5d), this.boxedHolder.doubleValue);
     }
 
     @Test
