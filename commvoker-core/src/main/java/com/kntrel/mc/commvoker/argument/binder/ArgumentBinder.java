@@ -7,8 +7,6 @@ import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.context.CommandContext;
-
 import java.lang.annotation.Annotation;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -78,6 +76,12 @@ public class ArgumentBinder<S, T> {
 
         //BUILD
         public abstract ArgumentBinding<S, C, T> bind();
+
+        protected final void validateBindingConfiguration() {
+            if (this.annotation_ != null && this.type_ == null) {
+                throw new IllegalStateException("toAnnotation(...) requires toClass(...)");
+            }
+        }
     }
 
 
@@ -95,6 +99,7 @@ public class ArgumentBinder<S, T> {
 
         //IMPLEMENTATION
         @Override public ArgumentBinding<S, ArgumentContext, T> bind() {
+            this.validateBindingConfiguration();
             Priority priority = (this.priority_ != null) ? this.priority_ : Priority.NORMAL;
             return new AssemblerArgumentBinding<>(
                     this.supplier_,
@@ -122,6 +127,7 @@ public class ArgumentBinder<S, T> {
 
         //IMPLEMENTATION
         @Override public ArgumentBinding<S, ParameterContext, T> bind() {
+            this.validateBindingConfiguration();
             Priority priority = (this.priority_ != null) ? this.priority_ : Priority.NORMAL;
             return new ImplicitArgumentBinding<>(
                     this.implyer_,

@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import com.kntrel.mc.commvoker.mock.MockImplicit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -158,6 +159,16 @@ class ArgumentResolverImplTest {
         );
         assertThrows(NoSuchArgumentBindingException.class,
                 () -> resolver.resolve(badCtx));
+    }
+
+    @Test
+    void annotationOnlyImplicitBindingIsRejected() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                ArgumentBinder.<Object, Object>implicit(ignored -> new Object())
+                        .toAnnotation(MockImplicit.class)
+                        .bind()
+        );
+        assertEquals("toAnnotation(...) requires toClass(...)", ex.getMessage());
     }
 
     // helper for the above test
