@@ -7,8 +7,6 @@ import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.assembler.Assembler;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.util.Priority;
-import com.mojang.brigadier.context.CommandContext;
-
 import java.lang.annotation.Annotation;
 import java.util.function.Function;
 import java.util.function.Predicate;

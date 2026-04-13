@@ -13,9 +13,12 @@ import com.kntrel.util.Priority;
 import com.mojang.brigadier.arguments.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +43,19 @@ class ArgumentResolverImplTest {
             Set<Boolean> boolSet,
             String greedy                // ← last token
     ) {}
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    private @interface AnnotationOnly {}
+
+    @SuppressWarnings("unused")
+    private void annotationOnlyDummy(@AnnotationOnly String annotated) {}
+
+    @SuppressWarnings("unused")
+    private void annotationOnlyPairDummy(@AnnotationOnly String first, @AnnotationOnly String second) {}
+
+    @SuppressWarnings("unused")
+    private void conditionOnlyDummy(String first, String second) {}
 
     /** Build a minimal CommandDefinition `<plain> <word> <int> <box> <dbl> <list> <set> <greedyString>` */
     private static final CommandDefinition CMD_DEF = new CommandDefinition(new CommandToken[]{
@@ -158,6 +174,112 @@ class ArgumentResolverImplTest {
         );
         assertThrows(NoSuchArgumentBindingException.class,
                 () -> resolver.resolve(badCtx));
+    }
+
+    @Test
+    void annotationOnlyBindingResolvesAnnotatedParameter() throws NoSuchMethodException {
+        Method m = getClass().getDeclaredMethod("annotationOnlyDummy", String.class);
+        Parameter p = m.getParameters()[0];
+        ArgumentContext ctx = new ArgumentContext(
+                null,
+                p,
+                p.getParameterizedType(),
+                m,
+                0,
+                new CommandDefinition(new CommandToken[]{ CommandToken.argument("annotated") }),
+                0,
+                List.of()
+        );
+
+        ArgumentResolverImpl<Object> localResolver = new ArgumentResolverImpl<>();
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.word()))
+                .toAnnotation(AnnotationOnly.class)
+                .bind());
+
+        var desc = localResolver.resolve(ctx);
+        StringArgumentType stringArgumentType = assertArgumentTypeNode(StringArgumentType.class, desc.template());
+        assertEquals(StringArgumentType.StringType.SINGLE_WORD, stringArgumentType.getType());
+    }
+
+    @Test
+    void conditionOnlyBindingResolvesMatchingParameter() throws NoSuchMethodException {
+        Method m = getClass().getDeclaredMethod("conditionOnlyDummy", String.class, String.class);
+
+        ArgumentResolverImpl<Object> localResolver = new ArgumentResolverImpl<>();
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.word()))
+                .toCondition(ctx -> ctx.parameterIndex() == 0)
+                .withPriority(Priority.HIGH)
+                .bind());
+
+        StringArgumentType firstType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 0)).template());
+        assertEquals(StringArgumentType.StringType.SINGLE_WORD, firstType.getType());
+    }
+
+    @Test
+    void samePriorityUnboundBindingsCoexistWhenConditionsDiffer() throws NoSuchMethodException {
+        Method m = getClass().getDeclaredMethod("conditionOnlyDummy", String.class, String.class);
+
+        ArgumentResolverImpl<Object> localResolver = new ArgumentResolverImpl<>();
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.word()))
+                .toCondition(ctx -> ctx.parameterIndex() == 0)
+                .withPriority(Priority.NORMAL)
+                .bind());
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.string()))
+                .toCondition(ctx -> ctx.parameterIndex() == 1)
+                .withPriority(Priority.NORMAL)
+                .bind());
+
+        StringArgumentType firstType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 0)).template());
+        StringArgumentType secondType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 1)).template());
+
+        assertEquals(StringArgumentType.StringType.SINGLE_WORD, firstType.getType());
+        assertEquals(StringArgumentType.StringType.QUOTABLE_PHRASE, secondType.getType());
+    }
+
+    @Test
+    void samePriorityClassBoundBindingsCoexistWhenConditionsDiffer() throws NoSuchMethodException {
+        Method m = getClass().getDeclaredMethod("conditionOnlyDummy", String.class, String.class);
+
+        ArgumentResolverImpl<Object> localResolver = new ArgumentResolverImpl<>();
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.word()))
+                .toClass(String.class)
+                .toCondition(ctx -> ctx.parameterIndex() == 0)
+                .withPriority(Priority.NORMAL)
+                .bind());
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.string()))
+                .toClass(String.class)
+                .toCondition(ctx -> ctx.parameterIndex() == 1)
+                .withPriority(Priority.NORMAL)
+                .bind());
+
+        StringArgumentType firstType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 0)).template());
+        StringArgumentType secondType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 1)).template());
+
+        assertEquals(StringArgumentType.StringType.SINGLE_WORD, firstType.getType());
+        assertEquals(StringArgumentType.StringType.QUOTABLE_PHRASE, secondType.getType());
+    }
+
+    @Test
+    void samePriorityAnnotationBindingsCoexistWhenConditionsDiffer() throws NoSuchMethodException {
+        Method m = getClass().getDeclaredMethod("annotationOnlyPairDummy", String.class, String.class);
+
+        ArgumentResolverImpl<Object> localResolver = new ArgumentResolverImpl<>();
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.word()))
+                .toAnnotation(AnnotationOnly.class)
+                .toCondition(ctx -> ctx.parameterIndex() == 0)
+                .withPriority(Priority.NORMAL)
+                .bind());
+        localResolver.register(ArgumentBinder.<Object, String>argumentAssembler(() -> Assembler.ofArgumentType(StringArgumentType.string()))
+                .toAnnotation(AnnotationOnly.class)
+                .toCondition(ctx -> ctx.parameterIndex() == 1)
+                .withPriority(Priority.NORMAL)
+                .bind());
+
+        StringArgumentType firstType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 0)).template());
+        StringArgumentType secondType = assertArgumentTypeNode(StringArgumentType.class, localResolver.resolve(ctx(m, 1)).template());
+
+        assertEquals(StringArgumentType.StringType.SINGLE_WORD, firstType.getType());
+        assertEquals(StringArgumentType.StringType.QUOTABLE_PHRASE, secondType.getType());
     }
 
     // helper for the above test

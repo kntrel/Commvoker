@@ -4,37 +4,34 @@ import com.kntrel.mc.commvoker.argument.*;
 import com.kntrel.mc.commvoker.argument.binding.ArgumentBinding;
 import com.kntrel.mc.commvoker.argument.context.ArgumentGatherer;
 import com.kntrel.mc.commvoker.argument.context.ArgumentContext;
-import com.kntrel.mc.commvoker.argument.context.ExecutionContext;
 import com.kntrel.mc.commvoker.argument.context.ParameterContext;
 import com.kntrel.mc.commvoker.argument.descriptor.ArgumentDescriptor;
 import com.kntrel.mc.commvoker.argument.descriptor.TemplatedArgumentDescriptor;
 import com.kntrel.mc.commvoker.exception.NoSuchArgumentBindingException;
-import com.kntrel.util.SetMap;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.util.*;
-import java.util.function.Function;
 
 class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S> {
 
     private static class Registry<S, C extends ParameterContext, B extends ArgumentBinding<? super S, C, ?>> {
-        private final TreeSet<B> unBound_;
-        private final SetMap<Class<?>, B> classMap_;
-        private final SetMap<Class<? extends Annotation>, B> annotationMap_;
+        private final List<B> unBound_;
+        private final Map<Class<?>, List<B>> classMap_;
+        private final Map<Class<? extends Annotation>, List<B>> annotationMap_;
 
         Registry() {
-            this.unBound_ = new TreeSet<>();
-            this.classMap_ = new SetMap<>(TreeSet::new);
-            this.annotationMap_ = new SetMap<>(TreeSet::new);
+            this.unBound_ = new ArrayList<>();
+            this.classMap_ = new HashMap<>();
+            this.annotationMap_ = new HashMap<>();
         }
 
         void register(B binding) {
             if (binding.toClass() != null) {
-                this.classMap_.putInto(binding.toClass(), binding);
+                putInto(this.classMap_, binding.toClass(), binding);
                 return;
             }
             if (binding.toAnnotation() != null) {
-                this.annotationMap_.putInto(binding.toAnnotation(), binding);
+                putInto(this.annotationMap_, binding.toAnnotation(), binding);
                 return;
             }
             this.unBound_.add(binding);
@@ -48,7 +45,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
                     ? (Class<?>) t.getRawType()
                     : (Class<?>) ctx.type();
 
-            Set<B> match = this.classMap_.get(type);
+            List<B> match = this.classMap_.get(type);
             if (match != null) {
                 match.stream()
                         .filter(b -> b.test(ctx))
@@ -66,7 +63,7 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
 
             //Query annotation-bound matches
             for (Annotation ann : ctx.parameter().getAnnotations()) {
-                match = this.annotationMap_.get(ann.getClass());
+                match = this.annotationMap_.get(ann.annotationType());
                 if (match == null) { continue; }
                 match.stream()
                         .filter(b -> b.test(ctx))
@@ -84,6 +81,10 @@ class ArgumentResolverImpl<S> implements ArgumentResolver<S>, ArgumentRegistry<S
             }
 
             return matches;
+        }
+
+        private static <K, V> void putInto(Map<K, List<V>> map, K key, V value) {
+            map.computeIfAbsent(key, ignored -> new ArrayList<>()).add(value);
         }
     }
 
