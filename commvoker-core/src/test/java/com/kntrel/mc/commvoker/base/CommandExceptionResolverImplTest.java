@@ -3,6 +3,8 @@ package com.kntrel.mc.commvoker.base;
 import com.kntrel.mc.commvoker.error.CommandExceptionHandler;
 import com.kntrel.mc.commvoker.error.CommandExceptionResolver;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.brigadier.LiteralMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.util.function.Function;
@@ -55,5 +57,45 @@ class CommandExceptionResolverImplTest {
 
         CommandSyntaxException res = resolver.resolve(new SubException("test"));
         assertNotNull(res);
+    }
+
+    @Test
+    void testResolveWrappedCauseUsesMatchingCause() {
+        resolver.registerHandler(IllegalArgumentException.class,
+                e -> new SimpleCommandExceptionType(new LiteralMessage(e.getMessage())).create());
+
+        CommandSyntaxException res = assertDoesNotThrow(
+                () -> resolver.resolve(new RuntimeException("outer", new IllegalArgumentException("inner")))
+        );
+
+        assertNotNull(res);
+        assertEquals("inner", res.getRawMessage().getString());
+    }
+
+    @Test
+    void testResolveWrappedCausePassesCauseToHandles() {
+        resolver.registerHandler(new CommandExceptionHandler<IllegalArgumentException>() {
+            @Override
+            public Class<IllegalArgumentException> exceptionType() {
+                return IllegalArgumentException.class;
+            }
+
+            @Override
+            public CommandSyntaxException handle(IllegalArgumentException exception) {
+                return new SimpleCommandExceptionType(new LiteralMessage(exception.getMessage())).create();
+            }
+
+            @Override
+            public boolean handles(IllegalArgumentException exception) {
+                return "inner".equals(exception.getMessage());
+            }
+        });
+
+        CommandSyntaxException res = assertDoesNotThrow(
+                () -> resolver.resolve(new RuntimeException("outer", new IllegalArgumentException("inner")))
+        );
+
+        assertNotNull(res);
+        assertEquals("inner", res.getRawMessage().getString());
     }
 }

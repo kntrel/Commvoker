@@ -10,6 +10,8 @@ import java.util.Map;
 
 class CommandExceptionResolverImpl implements CommandExceptionResolver {
 
+    private record Resolution(Throwable exception, List<CommandExceptionHandler<?>> handlers) {}
+
     //FIELDS
     private final Map<Class<? extends Throwable>, List<CommandExceptionHandler<?>>> registry_;
     private final Map<Class<? extends CommandExceptionHandler<?>>, Class<? extends Throwable>> handleMap_;
@@ -51,12 +53,12 @@ class CommandExceptionResolverImpl implements CommandExceptionResolver {
     }
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })
     public CommandSyntaxException resolve(Throwable exception) {
-        List<CommandExceptionHandler<?>> handlers = this.deepResolve(exception);
-        if (handlers == null) { return null; }
+        Resolution resolution = this.deepResolve(exception);
+        if (resolution == null) { return null; }
 
-        for (CommandExceptionHandler handler : handlers) {
-            if (handler.handles(exception)) {
-                return handler.handle(exception);
+        for (CommandExceptionHandler handler : resolution.handlers()) {
+            if (handler.handles(resolution.exception())) {
+                return handler.handle(resolution.exception());
             }
         }
 
@@ -65,13 +67,15 @@ class CommandExceptionResolverImpl implements CommandExceptionResolver {
 
 
     //PRIVATE HELPERS
-    private List<CommandExceptionHandler<?>> deepResolve(Throwable exception) {
-        List<CommandExceptionHandler<?>> found = null;
-        while (found == null && exception != null) {
-            found = this.typeResolve(exception.getClass());
+    private Resolution deepResolve(Throwable exception) {
+        while (exception != null) {
+            List<CommandExceptionHandler<?>> found = this.typeResolve(exception.getClass());
+            if (found != null) {
+                return new Resolution(exception, found);
+            }
             exception = exception.getCause();
         }
-        return found;
+        return null;
     }
     private List<CommandExceptionHandler<?>> typeResolve(Class<? extends Throwable> type) {
         List<CommandExceptionHandler<?>> handlers = this.registry_.get(type);
