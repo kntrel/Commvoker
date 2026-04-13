@@ -76,6 +76,12 @@ public class ArgumentBinder<S, T> {
 
         //BUILD
         public abstract ArgumentBinding<S, C, T> bind();
+
+        protected final void validateBindingConfiguration() {
+            if (this.annotation_ != null && this.type_ == null) {
+                throw new IllegalStateException("toAnnotation(...) requires toClass(...)");
+            }
+        }
     }
 
 
@@ -93,6 +99,7 @@ public class ArgumentBinder<S, T> {
 
         //IMPLEMENTATION
         @Override public ArgumentBinding<S, ArgumentContext, T> bind() {
+            this.validateBindingConfiguration();
             Priority priority = (this.priority_ != null) ? this.priority_ : Priority.NORMAL;
             return new AssemblerArgumentBinding<>(
                     this.supplier_,
@@ -120,6 +127,7 @@ public class ArgumentBinder<S, T> {
 
         //IMPLEMENTATION
         @Override public ArgumentBinding<S, ParameterContext, T> bind() {
+            this.validateBindingConfiguration();
             Priority priority = (this.priority_ != null) ? this.priority_ : Priority.NORMAL;
             return new ImplicitArgumentBinding<>(
                     this.implyer_,
